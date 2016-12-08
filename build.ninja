@@ -1,0 +1,135 @@
+# rules for ninja (ninja-build)
+
+MAJOR=1
+MINOR=8
+PATCH=0
+VERSION=$MAJOR.$MINOR.$PATCH
+
+rule font
+  command = echo "// abc2svg music font src" > font.js;$
+   echo -n "var font_src = 'url(\"data:application/x-font-ttf;base64," >> font.js;$
+   base64 -w 0 abc2svg.ttf >> font.js;$
+   echo "\")'" >> font.js
+
+rule jsc
+  command = cp license $out;$
+   date +'const abc2svg={version:"$VERSION",vdate:"%F"}' >> $out;$
+   cat $in | uglifyjs - >> $out
+# uglifyjs options
+#	-c 'evaluate,join_vars'
+#   v = `date +'var version="$VERSION", vdate="%F"'` >> $out;$
+#  command = ./jscompress $in > $out
+
+rule jscu
+  command = cp license $out;$
+   date +'// $in for abc2svg-$VERSION (%F)' >> $out;$
+   cat $in | uglifyjs - >> $out
+
+rule dist_tar
+  command = ln -s . abc2svg-$VERSION; $
+   tar -zcvf $out $
+  abc2svg-$VERSION/Changes $
+  abc2svg-$VERSION/abcemb.js $
+  abc2svg-$VERSION/abcjs24 $
+  abc2svg-$VERSION/abcjsc $
+  abc2svg-$VERSION/abcnode $
+  abc2svg-$VERSION/abcps $
+  abc2svg-$VERSION/abc2svg.js $
+  abc2svg-$VERSION/abc2svg.sfd $
+  abc2svg-$VERSION/abc2svg.ttf $
+  abc2svg-$VERSION/build.ninja $
+  abc2svg-$VERSION/cmdline.js $
+  abc2svg-$VERSION/deco.js $
+  abc2svg-$VERSION/draw.js $
+  abc2svg-$VERSION/e.xhtml $
+  abc2svg-$VERSION/format.js $
+  abc2svg-$VERSION/francais.abc $
+  abc2svg-$VERSION/front.js $
+  abc2svg-$VERSION/gchord.js $
+  abc2svg-$VERSION/head.js $
+  abc2svg-$VERSION/interface-1.xhtml $
+  abc2svg-$VERSION/json.js $
+  abc2svg-$VERSION/license $
+  abc2svg-$VERSION/lyrics.js $
+  abc2svg-$VERSION/midi.js $
+  abc2svg-$VERSION/music.js $
+  abc2svg-$VERSION/parse.js $
+  abc2svg-$VERSION/play.js $
+  abc2svg-$VERSION/pstail.js $
+  abc2svg-$VERSION/psvg $
+  abc2svg-$VERSION/psvg.js $
+  abc2svg-$VERSION/subs.js $
+  abc2svg-$VERSION/svg.js $
+  abc2svg-$VERSION/tail.js $
+  abc2svg-$VERSION/tosvg.js $
+  abc2svg-$VERSION/tune.js $
+  abc2svg-$VERSION/wps.js; $
+   rm abc2svg-$VERSION
+
+rule edit
+  command = sed "$
+s+@PATH@+http://moinejf.free.fr/js+;$
+s+@JS@+abc2svg-$MAJOR.js+;$
+s+@MAJOR@+$MAJOR+;$
+s+@PS@++$
+" e.xhtml > edit-$MAJOR.xhtml;$
+   sed "$
+s+@PATH@+http://moinejf.free.fr/js+;$
+s+@JS@+abcps2svg-$MAJOR.js+;$
+s+@MAJOR@+$MAJOR+;$
+s+@PS@+ with PostScript+$
+" e.xhtml > psedit-$MAJOR.xhtml;$
+   sed "$
+s+@PATH@+.+;$
+s+@JS@+abc2svg-$MAJOR.js+;$
+s+@MAJOR@+$MAJOR+;$
+s+@PS@++$
+" e.xhtml > eloc-$MAJOR.xhtml;$
+   sed "$
+s+@PATH@+.+;$
+s+@JS@+abcps2svg-$MAJOR.js+;$
+s+@MAJOR@+$MAJOR+;$
+s+@PS@+ with PostScript+$
+" e.xhtml > pseloc-$MAJOR.xhtml
+
+build font.js: font | abc2svg.ttf
+
+build abc2svg-$MAJOR.js: jsc head.js abc2svg.js deco.js draw.js font.js $
+ format.js front.js music.js parse.js subs.js svg.js tune.js lyrics.js gchord.js $
+ tail.js | Changes
+
+build abcps2svg-$MAJOR.js: jsc head.js abc2svg.js deco.js draw.js font.js $
+ format.js front.js music.js parse.js subs.js svg.js tune.js lyrics.js gchord.js $
+ wps.js psvg.js pstail.js | Changes
+
+build abcemb-$MAJOR.js: jscu abcemb.js
+build json-$MAJOR.js: jscu json.js
+build midi-$MAJOR.js: jscu midi.js
+build play-$MAJOR.js: jscu play.js
+
+build edit-$MAJOR.xhtml: edit | e.xhtml
+
+build abc2svg-$VERSION.tar.gz: dist_tar $
+ abc2svg-$MAJOR.js abcps2svg-$MAJOR.js edit-$MAJOR.xhtml | Changes
+
+rule test
+  command = echo '// test' > abc2svg-$MAJOR.js;$
+   date +'const abc2svg={version:"$VERSION",vdate:"%F"}' >> abc2svg-$MAJOR.js;$
+   cat $in >> abc2svg-$MAJOR.js
+build test: test head.js abc2svg.js deco.js draw.js font.js $
+ format.js front.js music.js parse.js subs.js svg.js tune.js lyrics.js gchord.js $
+ tail.js
+
+rule testps
+  command = date +'const abc2svg={version:"$VERSION",vdate:"%F"}' > abcps2svg-$MAJOR.js;$
+   cat $in >> abcps2svg-$MAJOR.js
+build testps: testps head.js abc2svg.js deco.js draw.js font.js $
+ format.js front.js music.js parse.js subs.js svg.js tune.js lyrics.js gchord.js $
+ wps.js psvg.js pstail.js
+
+build all: phony abc2svg-$MAJOR.js abcps2svg-$MAJOR.js abcemb-$MAJOR.js $
+ json-$MAJOR.js midi-$MAJOR.js play-$MAJOR.js edit-$MAJOR.xhtml
+
+build dist: phony abc2svg-$VERSION.tar.gz | all
+
+default all

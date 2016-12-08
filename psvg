@@ -1,0 +1,47 @@
+#!/usr/bin/env js24
+// PS to SVG with js24 (Mozilla JavaScript shell - Spidermonkey)
+
+function abort(e) {
+	print("psvg error: " + e.message +
+		"\nStack:\n" + e.stack)
+}
+
+load("wps.js");
+load("psvg.js")
+
+var wps, svgobj
+
+// main
+function main() {
+	args = scriptArgs
+	if (!args[0]) {
+		print("psvg\n" +
+			"	PS to SVG translator\n" +
+			"	Usage: psvg PS_file");
+		quit()
+	}
+
+	// create the graphic PS operators
+	svgobj = new Svg;
+	wps = new Wps;
+	wps.parse(psvg_op);
+
+	// get the PS file
+	f = read(args[0]);
+
+	// translate to SVG
+	try {
+		wps.parse(f)
+	}
+	catch (e) {
+		abort(e)
+	}
+
+	// close the last graphic container
+	svgobj.setg(0);
+
+	// output the SVG buffer
+	print(svgbuf)
+}
+
+main()

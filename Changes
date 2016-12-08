@@ -1,0 +1,923 @@
+---- Version 1.8.0 - 2016-12-06 ----
+
+. fixes
+	Better drag & drop in the editor
+	Bad treatment of Q: with new beat (as "Q:3/8=1/4")
+	Don't display a box when 'box' is absent in the font definition
+		(reported by David Lacroix)
+	Bad vertical offset of lyrics (w:)
+	Crash when bad font in %%setfont-n
+	Bad horizontal shift of music glyphs when %%staffscale != 1
+	Clashes of left/right annotations with notes
+. changes
+	Accept "||:" as either simple left repeat bar ("|:"), or double bar
+		and left repeat bar when on 2 music lines
+	Do rendering when change in the included file (editor)
+	Ask the user to load the file in %%abc-include prior to any rendering
+			(editor)
+	New default value of %%vocalspace (23pt -> 10pt)
+	Don't scale the lyrics with %%staffscale value
+	Output the lyrics after the decorations
+
+---- Version 1.7.3 - 2016-11-18 ----
+
+. fixes
+	Don't output empty images
+	Bad values in SVG when invisible bar alone in a staff system
+		(reported by Bernhard Weichel)
+	Do abcps work again
+	Q: not handled while playing since 1.7.1
+		(reported by Gerhard Schacherl and Eric Forgeot)
+. changes
+	Don't accept numbers in %%pos
+
+---- Version 1.7.2 - 2016-11-09 ----
+
+. fixes
+	Bad offset of !arpeggio! when stem dowm
+		(reported by David Lacroix)
+. new features
+	Treat %%break (but not %%tune)
+
+---- Version 1.7.1 - 2016-10-30 ----
+
+. fixes
+	Bad display of measure repeat when 2 voices on the staff
+	Bad display of repeat measure bars when multi-voices and
+			symbol between ':|' and '|:' in one voice
+	Lack of a ',' in abc2svg.js
+		(reported by Paul Hardy)
+	Do 'abcnode' work again
+		(reported by Paul Hardy)
+	Erroneous re-display of Q: on generation restart
+	Lack of edit annotation for Q:
+. changes
+	Bigger grace notes
+
+---- Version 1.7.0 - 2016-10-04 ----
+
+. fixes
+	Loss of T: when after the first K:
+	Shift of word highlighting in the editor when '-' or '_'
+			at end of word
+		(asked by Ken Boyd)
+	Crash when empty C: line after some C: lines
+. changes
+	Display the full name of all voices when new voice
+			appearing in a new staff system
+		(asked by Frédéric Boulanger)
+. internal changes
+	Move generic code of cmdline.js to tosvg.js and
+			permit execution of user scripts
+
+---- Version 1.6.7 - 2016-09-29 ----
+
+. fixes
+	Crash on empty %%score
+		(reported by Bernhard Weichel)
+	Loop when long decoration with json.js
+		(reported by Bernhard Weichel)
+. changes
+	Highlight the lyrics in the editor
+		(asked by Ken Boyd)
+	Ask for a new name when saving the ABC file in the editor
+		(asked by Guido Gonzato)
+
+---- Version 1.6.6 - 2016-09-06 ----
+
+. fixes
+	Loss of '%%clef none' since ??
+	Crash of some %%map cases since 1.6.1
+		(reported by Gerhard Schacherl)
+
+---- Version 1.6.5 - 2016-08-26 ----
+
+. fixes
+	Crash of the PS to SVG interpreter since 1.6.2
+		(reported by Gerhard Schacherl)
+
+---- Version 1.6.4 - 2016-08-25 ----
+
+. fixes
+	Adjust the vertical offset of cresc/dimin
+	Crash when line underfull
+
+---- Version 1.6.3 - 2016-08-24 ----
+
+. fixes
+	Bad y offset of glissendos
+. changes
+	Complete francais.abc
+	Annotate the guitar chords and annotations for edition
+
+---- Version 1.6.2 - 2016-08-22 ----
+
+. fixes
+	Handle long decorations on second repeats
+	Bad error messages with '$n' arguments
+	Bad offset of some elements when %%staffscale != 1
+		(reported by Gerhard Schacherl)
+. new features
+	Add 4th parameter to %%tuplet (where)
+. internal changes
+	Add istart/iend in gch
+		(asked by Bernhard Weichel)
+
+---- Version 1.6.1 - 2016-08-16 ----
+
+. fixes
+	Bad SVG output in the editor when tuplets or slurs since 1.5.22
+		(reported by Gerhard Schacherl)
+	Bad scanning of U: defining a guitar chord since 1.6.0
+		(reported by Bernhard Weichel)
+	Do the mapping of notes with accidental when %%map by 'key,'
+		(fixed by Ken Boyd)
+
+---- Version 1.6.0 - 2016-08-05 ----
+
+. fixes
+	Accept '!' in the guitar chords defined by U:
+		(reported by Bernhard Weichel)
+	Handle glissendo on chords
+	Clash of ties on second interval chord
+. changes
+	Add francais.abc in the tarball
+. internal changes
+	Treat the note head decorations as the other decorations
+	Prepare functions for internationalization
+
+---- Version 1.5.28 - 2016-06-24 ----
+
+. fixes
+	Loss of annotations when on repeat measure bar
+	Loss of decoration when same long decorations
+			in 2 voices of the same staff
+	Crash when long decoration on 2 music lines
+
+---- Version 1.5.27 - 2016-06-07 ----
+
+. fixes
+	Bad JSON output
+		(reported by Bernhard Weichel)
+. changes
+	Accept %%abc-include inside tune body
+
+---- Version 1.5.26 - 2016-05-30 ----
+
+. fixes
+	Loss of clef when first line has no note
+	Crash when %%score with less voices inside a music line
+. changes
+	%%rbdbstop added
+		(asked by Bernhard Weichel)
+	Stop back again the repeat brackets on ||, [| and |]
+		(asked by Bernhard Weichel)
+
+---- Version 1.5.25 - 2016-05-26 ----
+
+. fixes
+	Don't use String.repeat (in json.js) which does not work
+			in all JS interpreters
+		(reported by Bernhard Weichel)
+	Error about some decorations when using abcps2svg
+		(reported by Pierre-Marie Gandoin)
+. internal changes
+	Remove psinit.js from the tarball
+
+---- Version 1.5.24 - 2016-05-19 ----
+
+. fixes
+	Abnormal shifts of notes when many voices per staff since 1.5.23
+		(reported by Christophe Poudras and Gerhard Schacherl)
+
+---- Version 1.5.23 - 2016-05-17 ----
+
+. fixes
+	Bad x and w values in grace note annotation
+		(reported by Pierre-Marie Gandoin)
+	Don't shift whole notes on voice overlap
+		(reported by Christophe Poudras)
+	Handle the decoration functions 10 (color) and 34 (invisible)
+			for invidual notes in chords
+		(reported by Christophe Poudras)
+. changes
+	Don't colorize music elements in the editor
+	Add more editor annotations (tuplets)
+		(asked by Pierre-Marie Gandoin)
+
+---- Version 1.5.22 - 2016-05-07 ----
+
+. changes
+	Change the "extra" list to Array in json output
+		(asked by Bernhard Weichel)
+. new features
+	%%graceword added
+
+---- Version 1.5.21 - 2016-05-04 ----
+
+. fixes
+	Avoid flickering when moving the mouse in the editor
+	Don't raise an error on 'r:' (remark)
+. new features
+	Memorize the remarks ('r:') if user.keep_remarks is set
+		(asked by Bernhard Weichel)
+. changes
+	Add editor annotations for decorations, beams, ties and slurs
+		(code from Pierre-Marie Gandoin)
+	Add midi-1.js and json-1.js
+		(asked by Bernhard Weichel)
+
+---- Version 1.5.20 - 2016-05-02 ----
+
+. fixes
+	Loop when '[' followed by space in the music
+		(reported by Bernhard Weichel)
+
+---- Version 1.5.19 - 2016-05-01 ----
+
+. fixes
+	Fix bad tie handling when playing with the editor
+
+. internal changes
+	Add json.js in the tarball
+		(asked by Bernhard Weichel)
+
+---- Version 1.5.18 - 2016-04-30 ----
+
+. fixes
+	Crash when dotted note in Q: since 1.5.6
+	Adjust the endpoints of the glissendo
+. new features
+	!ped! and !ped-up! added
+
+---- Version 1.5.17 - 2016-04-26 ----
+
+. fixes
+	Remove abnormal helper lines for whole rests
+	Bad horizontal offset of breve and longa notes
+
+---- Version 1.5.17 - 2016-04-26 ----
+
+. fixes
+	Crash on %%staffbreak
+	Bad staff of notes when voice changed from floating to fixed
+			in %%score
+. changes
+	Add automatic rendering after 2 seconds in the editor
+	Adjust the vertical offset of some rests
+
+---- Version 1.5.16 - 2016-04-24 ----
+
+. fixes
+	Bad music line split when %%linebreak <none>
+	Bad n-plet numbers when %%bgcolor
+		(reported by Christophe Poudras)
+	Bad vertical offset of whole rest
+
+---- Version 1.5.15 - 2016-04-21 ----
+
+. fixes
+	Bad text of %%begintext/%%endtext with escaped characters
+	Bad text of repeat sequences with escaped characters
+	Bad accidentals in guitar fonts when many double sharps/flats
+		(reported by Christophe Poudras)
+
+---- Version 1.5.14 - 2016-04-20 ----
+
+. fixes
+	Bad SVG when both "bb" and "b" in a guitar chord
+		(reported by Christophe Poudras)
+	Bad accidentals in guitar fonts when many same accidentals
+		(reported by Christophe Poudras)
+	Loss of extra text (T:, %%text...) before %%score
+	Bad tie length when before or after a repeat bar
+	Loss of tie on new repeat when previous note is tied
+	Bad end of repeat bracket after %%score with change of voice role 
+. internal changes
+	Use the class "abc2svg" instead of "music" for the music font
+	Move the text and tspan styles to the global container with
+			the class "abc2svg"
+		(asked by Bernhard Weichel)
+
+---- Version 1.5.13 - 2016-04-13 ----
+
+. fixes
+	Adjust vertical offset of some decorations
+	Abnormal note shifts when more than 2 voices in a staff and a rest
+			since 1.5.9
+		(reported by Christophe Poudras)
+	Bad display of '##' and 'bb' in guitar chords
+		(reported by Christophe Poudras)
+	Crash on playing when Q: without tempo value
+. new features
+	%%deco function 10 added (note color)
+. internal changes
+	Use <text> instead of <use> for glyphs in music font
+			and remove the associated <defs>
+
+---- Version 1.5.12 - 2016-04-10 ----
+
+. fixes
+	Bad glissendo since 1.5.11
+
+---- Version 1.5.11 - 2016-04-09 ----
+
+. fixes
+	Loss of measure bars when %%score with less staves
+			further in the music line
+	Set back the decoration function '4' and move the glissendo under '8'
+		(reported by Gerhard Schacherl)
+
+---- Version 1.5.10 - 2016-04-07 ----
+
+. fixes
+	Crash on some cases of ties since 1.5.6
+
+---- Version 1.5.9 - 2016-04-06 ----
+
+. fixes
+	Loss of '\' at end of line since 1.5.8
+	Loss of guitar chord when on a combined rest
+	Bad position of P: when on a combined rest
+	Bad key signature when defined between two measure bars
+	Clash of notes of 1st and 3rd voices when on a same staff
+		(reported by David Lacroix)
+. changes
+	Don't scale the decorations on grace notes
+
+---- Version 1.5.8 - 2016-04-04 ----
+
+. fixes
+	Bad SVG images when K: without key and %%transpose
+	Crash when %%transpose after voice definition in the tune header
+		(reported by Weichel Bernhard)
+	Add error message when no end of tuplet or grace note sequence
+		on end of line in the ABC source
+	Bad color of the note heads when selecting the notes
+		in the editor since 1.5.6
+
+---- Version 1.5.7 - 2016-03-29 ----
+
+. fixes
+	Bad chord name when bass and transpose
+		(reported by Christophe Poudras)
+	Crash when setting a boolean parameter to an empty value
+	No glyph for 128th rest
+
+---- Version 1.5.6 - 2016-03-23 ----
+
+. fixes
+	Lack of abcemb.js in the tarball
+	Bad abc2svg-n.js version in abcjs24, abcjsc and abcnode
+	Bad length of ties when at end of line and notes in an other voice
+	Lack of !roll! since 1.5.4
+. new features
+	Add %%musicfontsrc
+. internal changes
+	Add the 'abc2svg' music font and use it for some glyphs
+
+---- Version 1.5.5 - 2016-03-19 ----
+
+. fixes
+	Remove abnormal bars at start of line since 1.5.4
+		(reported by Pierre-Marie Gandoin)
+	Crash due to lack of note head definitions in 1.5.4
+		(reported by Pierre-Marie Gandoin)
+. internal changes
+	Remove the calls to the functions startsWith() and endsWith()
+			introduced in 1.5.4
+
+---- Version 1.5.4 - 2016-03-18 ----
+
+. fixes
+	Crash when long decoration without any note/rest in the music line
+	Loss of start of long trills when ending in the next line
+	Bad glissendo when notes with accidentals
+. changes
+	Add source annotations for multi-rests
+. internal changes
+	Update abcjsc for jsc-3 (webkitgtk-3)
+	Note heads as integer instead of string
+
+---- Version 1.5.3 - 2016-02-25 ----
+
+. fixes
+	Bad ties on right repeat
+	Bad tie when over dotted bar
+	Center the measure repeat signs
+	Better vertical offset of rests when many voices (again!)
+	Bad left margin with %%pagescale
+. new features
+	Decorations !-(!, !-)!, !~(! and !~)! added
+. changes
+	Put the spaces before the measure bars when many voices
+
+---- Version 1.5.2 - 2016-02-06 ----
+
+. fixes
+	Bad SVG output when %%scale
+	Crash when %%staves with new staves inside a music line
+
+---- Version 1.5.1 - 2016-02-05 ----
+
+. fixes
+	Bad scan of '%' inside gchord/annotation since 1.5.0
+	Better vertical offset of rests when many voices
+	Better slurs from note for grace note in some cases
+		(reported by Nils Liberg)
+	Erroneous meter on many staves when last staff is empty
+. changes
+	Shift the grace notes to the left when space at end of sequence
+		(asked by Nils Liberg)
+	Permit ties from many grace notes to chord
+
+---- Version 1.5.0 - 2016-01-31 ----
+
+. fixes
+	Program loop when no end of decoration
+		(reported by Nils Liberg)
+	Accept '3' as value for %%combinevoices/%%voicecombine
+		(reported by Nils Liberg)
+. changes
+	Close the last repeat bracket at end of tune
+	Set %%cancelkey by default !! compatibility !!
+
+---- Version 1.4.9 - 2016-01-18 ----
+
+. fixes
+	On K:, put the natural accidentals after the other ones
+			when less sharps or flats
+		(reported by Nils Liberg)
+
+---- Version 1.4.8 - 2016-01-17 ----
+
+. fixes
+	Handle !beam-accel! and !beam-rall!
+	Better repeat brackets
+		(reported by Nils Liberg)
+. new features
+	!rbend! added
+
+---- Version 1.4.7 - 2016-01-08 ----
+
+. fixes
+	Bad end of repeat bracket in second staves
+	Lack of repeat bracket continuation on 2nd line
+
+---- Version 1.4.6 - 2016-01-07 ----
+
+. fixes
+	Bad length unit when M:none in tune header and no L:
+	Bad offset of some decorations on grace notes with beam
+		(reported by David Randolph)
+. new features
+	%%rbmax and %%rbmin added
+. changes
+	Change the length of the repeat brackets
+
+---- Version 1.4.5 - 2015-12-21 ----
+
+. fixes
+	Bad stroke-width with PostScript code
+	Bad microtone accidentals after transposition
+	Bad accidental of note tied from inflected note after measure bar
+	Handle '+' in %%transpose
+	Crash when %%singleline and no M:
+. internal changes
+	Default stroke-width moved from class to container
+
+---- Version 1.4.4 - 2015-12-13 ----
+
+. fixes
+	Lack of transposition of guitar chords after tabulation
+. new features
+	%%singleline added
+		(asked by Lorenzo Marcon)
+
+---- Version 1.4.3 - 2015-11-24 ----
+
+. fixes
+	Bad label of the 'play' button according
+			to the playing state in the editor
+		(reported by Gerhard Schacherl)
+	Bad tempo while playing when tempo (Q:) displayed
+			by %%titleformat (again)
+		(reported by Gerhard Schacherl)
+
+---- Version 1.4.2 - 2015-11-21 ----
+
+. new features
+	%%voicecombine, %%voicemap and %%voicescale may be global
+. fixes
+	Bad offset/width of long decorations when %%staffscale
+			or %%voicescale
+		(reported by Gerhard Schacherl)
+	Bad handling of %%combinevoices after voice declaration
+	Bad handling of "$0" in texts
+		(reported by Gerhard Schacherl)
+	Bad tempo while playing when tempo (Q:) displayed
+			by %%titleformat
+		(reported by Gerhard Schacherl)
+. changes
+	Don't draw a line above a measure bar up to the upper staff
+			when this upper staff has no bar
+	Draw the measure bars a bit thicker
+. internal changes
+	Change export function mechanism
+	Export the function xypath()
+
+---- Version 1.4.1 - 2015-10-26 ----
+
+. fixes
+	. bad slur when ending from the previous music line
+		and in a second voice
+	. bad height of fingering in groups of grace notes
+
+---- Version 1.4.0 - 2015-10-12 ----
+
+. new features
+	. %%pagescale added
+. fixes
+	. clash when shift of rest and dotted note
+	. loss of extra elements (T:, %%text..) inside music
+			when no explicit end of line
+	. remove extra space of M:none at start of line
+	. remove '%%' at start of %%begintext/%%endtext sequences
+. internal changes
+	. change the SVG dimension, removing the viewport and
+			changing the internal scale from 72 to 96 PPI
+
+---- Version 1.3.6 - 2015-10-09 ----
+
+. fixes
+	. update the ABC parser about sorting the pitches of chords
+		(reported by Bernhard Weichel)
+
+---- Version 1.3.5 - 2015-10-08 ----
+
+. fixes
+	. bad position/clash of notes when multivoice since 1.3.4
+	. bad abc2svg file in the abcjs24 script
+	. bad abc2svg version in XHTML documents (cmdline)
+
+---- Version 1.3.4 - 2015-10-05 ----
+
+. fixes
+	. clash of stems in some cases of staff with many voices
+			and same stem direction
+	. bad staff of slur continuation in secondary voices when many staves
+	. too much space after accidental when unison
+	. handle "\*" as the character '*' in lyrics (w:)
+	. lack of MIDI pitch in midi.js when unison on tied notes
+	. clash of rests when more than 2 voices per staff
+. changes
+	. adjust the vertical room of rests
+. internal changes
+	. don't sort the pitches of chords before SVG generation
+		(asked by Bernhard Weichel)
+
+---- Version 1.3.3 - 2015-09-07 ----
+
+. new features
+	. %%decoerr added
+. fixes
+	. lack of upper vertical space for !trill!
+	. crash when no body in the last tune
+		(reported by Nils Liberg)
+	. too much space before the clefs
+	. loss of notes of overlaid voices
+	. crash when no note at end of tie
+	. bad tie when clef change just later
+	. double accidental when unison
+	. bad string width computation when XML character references
+. changes
+	. set 'none' as the default M: value instead of '4/4'
+	. replace '%%dynamic'... by '%%pos dyn'...
+	. remove the Abc variables 'version' and 'vdate'
+
+---- Version 1.3.2 - 2015-09-04 ----
+
+. fixes
+	. lack of the 1.3.1 stuff!
+		(reported by Lou Montulli)
+
+---- Version 1.3.1 - 2015-09-03 ----
+
+. fixes
+	. bad fonts when images mixed from different generation contexts
+		(reported by Lou Montulli)
+	. bad staves with %%stafflines 1 or 2
+	. bad font style/weight when font change inside texts
+. changes
+	. use %%fullsvg as a string for defining unique font classes
+. internal changes
+	. shift right 8px the clef anchor
+
+---- Version 1.3.0 - 2015-08-31 ----
+
+. new features
+	. %%beginml..%%endml added
+		(asked by Nils Liberg)
+. fixes
+	. bad <style> in images with %%fullsvg true or false
+	. erroneous information in the interface-1 documentation
+	. bad string length when '$' or XML character reference
+	. bad position of elements when scaled staff of voice
+		(reported by Gerhard Schacherl)
+	. loss of ledger lines
+		(reported by Gerhard Schacherl)
+. changes
+	. add the info object as an argument of the callback function
+	  get_abcmodel() and update the interface-1 documentation
+		(asked by Bernhard Weichel)
+
+---- Version 1.2.11 - 2015-08-27 ----
+
+. fixes
+	. bad playing when %%transpose since 1.2.10
+		(reported by Bernhard Weichel)
+	. bad slur when between chord and non chord
+	. button disabled after print in the ABC editor
+		(reported by Nils Liberg)
+. changes
+	. print with browser print in the ABC editor
+
+---- Version 1.2.10 - 2015-08-25 ----
+
+. fixes
+	. loss of tuplet when starting with grace notes
+		(reported by Lou Montulli)
+	. bad playing when tied notes on different clefs
+. changes
+	. add midi.js in the tarball
+		(used by Bernhard Weichel)
+
+---- Version 1.2.9 - 2015-08-23 ----
+
+. fixes
+	. bad playing of repeat sequences with 1st time
+		(reported by Kai-Uwe Behrmann)
+	. bad x offset of repeat bracket when ending on |:
+		(reported by Nils Liberg)
+
+---- Version 1.2.8 - 2015-07-29 ----
+
+. fixes
+	. crash when new clef in a new staff at start of a new music line
+	. bad output when font change in annotation with absolute position
+. changes
+	. in edit-1.xhtml, let the left side (ABC source) visible
+	  and let the right side (rendering) visible
+	  on mouse over or touchstart
+
+---- Version 1.2.7 - 2015-07-19 ----
+
+. fixes
+	. clash of accidentals when voice overlap
+	. bad length and vertical offset of repeat brackets when %%staffscale
+		(reported by Gerhard Schacherl)
+
+---- Version 1.2.6 - 2015-07-13 ----
+
+. new features
+	. file drag and drop in edit-1.xhtml
+	. general and oscillator volume controls for playing in edit-1.xhtml
+. fixes
+	. loss of transposition when %%transpose in file or tune headers
+	. lack of natural accidentals on K:C inside tunes
+		(reported by Nils Liberg)
+	. bad playing when changes of tempo inside tunes
+. changes
+	. smaller vertical height of tuplets
+	. better tuplet brackets with wide strings
+	. always set natural accidentals when transposing K:none
+		(asked by David Lacroix)
+
+---- Version 1.2.5 - 2015-06-15 ----
+
+. fixes
+	. bad start of ties in second repeats at start of line
+	. lack of ties in second repeats at start of line when many voices
+		(reported by Gerhard Schacherl)
+	. bad handling of ties on playing
+		(reported by Gerhard Schacherl)
+	. bad horizontal offset of dots when staff scale != 1
+	. loss of line break when occuring just at minimal spacing
+. changes
+	. adjust octava offsets in clefs
+. internal changes
+	. adjust offset of some glyphs for use with Bravura
+
+---- Version 1.2.4 - 2015-06-07 ----
+
+. fixes
+	. loop in %%beginsvg..%%endsvg sequences
+. internal changes
+	. adjust the offset of some glyphs to prepare the use of music fonts
+
+---- Version 1.2.3 - 2015-06-04 ----
+
+. new features
+	. accept a map of lines in %%stafflines
+		(syntax from Hudson Lacerda)
+. fixes
+	. lack of explicit accidentals in key signature when K:C or K:none
+
+---- Version 1.2.2 - 2015-05-31 ----
+
+. fixes
+	. edit-1.xhtml: no response of some buttons with small windows
+		(with help from Norman Schmidt)
+
+---- Version 1.2.1 - 2015-05-25 ----
+
+. fixes
+	. bad transposition when K: inside tune
+		(reported by Gerhard Schacher)
+	. bad offset of flags when the voice is scaled
+		(reported by Gerhard Schacher)
+	. bad offset of some decorations with %%deco function 3
+
+---- Version 1.2.0 - 2015-05-21 ----
+
+. new features
+	. add "%%combinevoices 3"
+. fixes
+	. bad handling of %%ornament with %%deco function 3
+	. accept '0' in %%transpose
+		(reported by Norman Schmidt)
+	. clash of accidentals in chords with unisons
+. changes
+	. extend the syntax of %%map
+	. "all,<any_note>" replaced by "*" in %%map
+
+---- Version 1.1.12 - 2015-05-15 ----
+
+. fixes
+	. crash when %%score/%%staves before generation restart
+	. clash of accidentals in complex chords
+	. music line too wide when line split on beamed sequence
+	. crash when trying to cut a music line at end of tune
+	. bad offset of tuplets and slurs when voice appearing
+	  in a %%score/%%stave sequence
+	. don't display a clef when no symbol in a %%score/%%stave sequence
+. changes
+	. accept XML character references and predefined entities
+	  ("&xxx;") in any string
+
+---- Version 1.1.11 - 2015-04-29 ----
+
+. fixes
+	. bad handling of %%voice
+	. bad key when %%transpose in tune header before K:none
+	. abnormal key space when many %%transpose in tune body and K:none
+	. fix error when more than 1 digit in 'q' or 'r' of tuplet (p:q:r
+	. let more vertical room above tuplet numbers
+		(reported by Alan Snyder)
+	. set the number alone in tuplet closer to beam
+		(reported by Alan Snyder)
+	. bad x offset of number alone in tuplet
+		(reported by Alan Snyder)
+. changes
+	. accept many invisible notes in beams
+
+---- Version 1.1.10 - 2015-04-19 ----
+
+. fixes
+	. bad default width of 'y' (space), reset to '10'
+	. bad left margin after end of tune when %%leftmargin in tune body
+	. bad unison display according to %%shiftunison value
+	. bad sounding pitch of notes with natural accidental
+. changes
+	. don't change the staff offset of the notes according to the clef
+	  when the key signature is 'P' (percussion)
+
+---- Version 1.1.9 - 2015-04-14 ----
+
+.fixes
+	- errors on the extra decorations (invisible, beamon, .. stemless)
+		(reported by Gerhard Schacherl)
+	- errors on decorations with a number as the string
+	- bad %%transpose by note interval
+	- bad key when %%transpose and K:none
+	- don't set the voice color to the clef, key and time signatures
+	- buttons inactive with some browsers, especially on Android
+.changes
+	- API: 'user.get_schema' renamed 'user.get_abcmodel'
+	- API: don't stop the SVG generation on user.get_abcmodel
+			returning non false value
+	- API: 'user.img_out' optional
+
+---- Version 1.1.8 - 2015-04-08 ----
+
+. fixes
+	- crash when spaces inside chords
+		(reported by Bernhard Weichel)
+
+---- Version 1.1.7 - 2015-04-07 ----
+
+. fixes
+	- %%voicemap did not work since 1.1.6
+	- 'key,' in %%map does not depend on the key mode
+		(reported by Hudson Lacerda).
+	- preserve the spaces in the strings of the decorations
+	- preserve the spaces in command line generation
+
+---- Version 1.1.6 - 2015-04-06 ----
+
+. fixes
+	- abnormal %%voicecombine since 1.1.5
+	- bad tie direction after voice combine
+	- error in build.ninja
+
+---- Version 1.1.5 - 2015-04-05 ----
+
+. new features
+	- 'all,' added in %%map.
+	- %%voicecombine added.
+. fixes
+	- bad handling of %%beginxxx/%%endxxx in xhtml documents
+			with abcemb-1.js
+	- loss of clef in music lines after an empty staff
+	- remove the %% characters at start of lines
+			in %%beginxxx/%%endxxx sequences
+
+---- Version 1.1.4 - 2015-03-31 ----
+
+. new features
+	- extend ps_func of %%deco with different heads for stem up/down
+	- extend %%map with different heads for stem up/down
+. fixes
+	- bad transposition of chord symbols
+		(reported by Gerhard Schacherl)
+	- bad treament of %%voice
+		(reported by Gerhard Schacherl)
+	- crash when no command in pseudo-comment
+		(reported by Gerhard Schacherl)
+	- apply note mapping after after transposition
+	- bad transposition when %%transpose after K:
+		(reported by David Lacroix)
+	- bad handling of 'print==<note>' in %%map
+		(reported by David Lacroix)
+
+---- Version 1.1.3 - 2015-03-28 ----
+
+. fixes
+	- bad handling of ties
+	- bad directions/positions since 1.1.1
+		(reported by David Lacroix)
+
+---- Version 1.1.2 - 2015-03-27 ----
+
+. fixes
+	- crash when slurs since 1.1.1
+		(reported by Seymour Shlien)
+
+---- Version 1.1.1 - 2015-03-27 ----
+
+. new features
+	- %%map added
+. changes
+	- k: is obsolete
+. fixes
+	- crash when new music line occuring on a voice out of %%score/%%staves
+		(reported by Frédéric Boulanger)
+	- bad key signature when 'm' (minor) at end of K:
+	- bad position of key signatures when declared before a clef
+			or a measure bar
+	- bad ties when %%combinevoices
+		(reported by David Lacroix)
+	- crash when map=/%%voicemap and no %%map yet defined
+	- loss of lyrics in overlay voices
+	- loss of positions when modifed by overlayed voice
+	- loss of positions when more than one in tune header
+
+---- Version 1.1.0 - 2015-03-18 ----
+
+. new features
+	- handle 'octave,' and 'key,' in note mapping (k:)
+	- %%voicemap added
+. changes
+	- generate the whole tune in one pass
+		(no more restart on T:, %%center, %%sep, %%text, ..)
+		except %%multicol, %%newpage, %%{left,right}margin and %%scale
+		(needed for playing - !! compatibility !!)
+	- remove the X and circled X note heads in percussion voices
+		(replaced by map=/k: - !! compatibility !!)
+	- new glyph names of the internal accidentals
+		(for faster generation - !! compatibility !!))
+. fixes
+	- bad offset of many elements when scaffscale != 1
+	- crash when no note head in k: for bigger duration
+		(reported by Steve West)
+	- restore note maps at end of tune
+	- lack of subtitle (T:) inside tunes
+	- bad y offset of the SVG glyphs when called from the PS interpreter
+	- bad help of abcjs24, abcjsc and abcnode when no command line argument
+. internal changes
+	- draw the notes after the stems
+		(for tablatures with map=/k:)
+
+---- Version 1.0.0 - 2015-03-13 ----
+
+First version based on abcm2ps-8.6.2.
