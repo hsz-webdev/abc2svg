@@ -298,6 +298,17 @@ function Wps() {
     var C = Os.pop();
     Es.push([false, C === true ? P : N]);
   };
+//jfm++
+	Sd["and"] = function() {
+		var A = Os.pop();
+		var B = Os.pop();
+		if (true === A || false === A) {
+			Os.push(A == true && B === true)
+			return
+		}
+		Os.push(A & B)
+	}
+//jfm--
   Sd["repeat"] = function Xrepeat() { // TODO in ps
     var B = Os.pop();
     var N = Os.pop();
@@ -406,13 +417,16 @@ function Wps() {
   Sd["bind"] = function() {Os.push(bind(Os.pop()));};
   function bind(X) {
     if(isSymbol(X) && !isQuoted(X)) {
-      var K = symbolName(X);
-      var D = inDs(Ds, K);
-      if(Sb) {
-        if(!D)
-          throw new Error("bind error '" + K + "'");
-        return bind(D[K]);
-      } else return !D ? X : bind(D[K]);
+//jfm++
+//      var K = symbolName(X);
+//      var D = inDs(Ds, K);
+//      if(Sb) {
+//        if(!D)
+//          throw new Error("bind error '" + K + "'");
+//        return bind(D[K]);
+//      } else return !D ? X : bind(D[K]);
+	return X
+//jfm--
     } else if(isArray(X) && isQuoted(X)) {
       var N = X.length;
       var A = [];

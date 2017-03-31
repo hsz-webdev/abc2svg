@@ -1,6 +1,6 @@
 // abc2svg - front.js - ABC parsing front-end
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
@@ -213,27 +213,23 @@ function cnv_escape(src) {
 			if (src[i + 1] == '0') {
 				switch (src[i + 2]) {	// compatibility
 				case '1':
-					dst += "\u266f"
+					dst += "\u266f";
 					j = i + 3
 					continue
 				case '2':
-					dst += "\u266d"
+					dst += "\u266d";
 					j = i + 3
 					continue
 				case '3':
-					dst += "\u266e"
+					dst += "\u266e";
 					j = i + 3
 					continue
 				case '4':
-//					codeUnits = [0xd834, 0xdd2a]
-//					dst += String.fromCharCode.apply(null, codeUnits);
-					dst += "&#x1d12a;"
+					dst += "&#x1d12a;";
 					j = i + 3
 					continue
 				case '5':
-//					codeUnits = [0xd834, 0xdd2b]
-//					dst += String.fromCharCode.apply(null, codeUnits);
-					dst += "&#x1d12b;"
+					dst += "&#x1d12b;";
 					j = i + 3
 					continue
 				}
@@ -280,7 +276,7 @@ function cnv_escape(src) {
 // ABC include
 var include = 0
 
-function do_include(fname) {
+function do_include(fn) {
 	var file, parse_sav
 
 	if (!user.read_file) {
@@ -292,18 +288,22 @@ function do_include(fname) {
 		return
 	}
 	include++;
-	file = user.read_file(fname)
+	file = user.read_file(fn)
 	if (!file) {
-		syntax(1, "Cannot read file '$1'", fname)
+		syntax(1, "Cannot read file '$1'", fn)
 		return
 	}
-	parse_sav = clone(parse);
-	tosvg(fname, file);
-	parse = parse_sav;
+	if (fn.slice(-3) == '.js') {
+		eval(file)
+	} else {
+		parse_sav = clone(parse);
+		tosvg(fn, file);
+		parse = parse_sav
+	}
 	include--
 }
 
-// parse the input file
+// parse ABC code
 function tosvg(in_fname,		// file name
 		file) {			// file content
 	var	i, c, bol, eol, boc, eoc, end,
@@ -412,7 +412,7 @@ function tosvg(in_fname,		// file name
 		fname: in_fname
 	}
 //--fixme: temporary
- line = new scanBuf();
+ var line = new scanBuf();
  parse.line = line;
  line.buffer = file;
  line.index = 0;
@@ -478,18 +478,14 @@ function tosvg(in_fname,		// file name
 				parse.prefix = a[1]
 				continue
 			case "abc-include":
-//			case "abc2svg-include":
 				ext = a[1].match(/.*\.(.*)/)
 				if (!ext)
 					continue
 				switch (ext[1]) {
 				case "abc":
+				case "js":
 					do_include(a[1])
 					break
-//fixme: does not work with edit.xhtml
-//				case "js":
-//					load(a[1])
-//					break
 				}
 				continue
 			}
@@ -509,7 +505,7 @@ function tosvg(in_fname,		// file name
 				do_begin_end(b[1], a[1],
 					parse.file.slice(eol + 1, i).replace(
 						new RegExp('^' + line0 + line1, 'gm'),
-										''))
+										''));
 				eol = file.indexOf('\n', i + 6)
 				if (eol < 0)
 					eol = eof
@@ -575,7 +571,7 @@ function tosvg(in_fname,		// file name
 						text = file.slice(bol)
 					else
 						text = file.slice(bol, eol);
-					a = text.split(/\s+/, 1)
+					a = text.match(/\S+/)
 					switch (a[0]) {
 					default:
 						opt[select].push(
@@ -596,30 +592,25 @@ function tosvg(in_fname,		// file name
 			do_pscom(uncomment(text.trim(), true))
 			continue
 		}
+
+		// music line (or free text)
 		if (line1 != ':') {
-			last_info = undefined
-			if (parse.state != 3) {		// not tune body
-				if (parse.state != 2)
-					continue
-				goto_tune()
-			}
-//fixme: what was this test used for?
-//			if (line.buffer) {
-				parse_music_line()
-//			}
+			last_info = undefined;
+			parse_music_line()
 			continue
 		}
 
 		// information fields
-		text = file.slice(bol + 2, eol);
-		text = uncomment(text.trim(), true)
-		if (line0 == '+' && line1 == ':') {
+		text = uncomment(file.slice(bol + 2, eol).trim(),
+				 true)
+//		if (line0 == '+' && line1 == ':') {
+		if (line0 == '+') {
 			if (!last_info) {
 				syntax(1, "+: without previous info field")
 				continue
 			}
 			txt_add = ' ';
-			line0 = last_info;
+			line0 = last_info
 		}
 
 		switch (line0) {
@@ -634,12 +625,15 @@ function tosvg(in_fname,		// file name
 
 			cfmt_sav = clone(cfmt);
 			cfmt.pos = clone(cfmt.pos);
-			info_sav = clone(info);
+			info_sav = clone(info)
+			if (info.V) {
+				info_sav.V = {}
+				for (i in info.V)
+					info_sav.V[i] = clone(info.V[i])
+			}
 			char_tb_sav = clone(char_tb);
 			glovar_sav = clone(glovar);
 			maps_sav = maps;
-//			for (var i in info)
-//				delete info[i]
 			info.X = text;
 			parse.state = 1			// tune header
 			continue
@@ -647,49 +641,32 @@ function tosvg(in_fname,		// file name
 			switch (parse.state) {
 			case 0:
 				continue
-			case 2:
-				goto_tune();
-				break
-			}
-			curvoice = voice_tb[0];
-			if (!curvoice) {		// tune header
+			case 1:
 				if (info.T == undefined)	// (keep empty T:)
 					info.T = text
 				else
 					info.T += "\n" + text
 				continue
 			}
-			s = {
-				type: BLOCK,
-				subtype: "title",
-//fixme: no annotation
-//				ctx: parse.ctx,
-//				istart: parse.istart,
-//				iend:  parse.iend,
-				text: text
-			}
-			sym_link(s)
+			s = new_block("title");
+			s.text = text
 			continue
 		case 'K':
-			if (parse.state == 0)
+			switch (parse.state) {
+			case 0:
 				continue
-			if (parse.state == 1)		// tune header
+			case 1:				// tune header
 				info.K = text
-			else if (parse.state == 2)
-				goto_tune();
+				break
+			}
 //temporary
  parse.line.buffer = text;
  parse.line.index = 0
 			do_info(line0, text)
-			if (parse.state != 1)
-				continue
-			parse.state = 2			// tune header after K:
-			if (!glovar.ulen)
-				glovar.ulen = BASE_LEN / 8
 			continue
 		case 'W':
 			if (parse.state == 0
-			 || cfmt.writefields.indexOf('W') < 0)
+			 || cfmt.writefields.indexOf(line0) < 0)
 				break
 			if (!info.W)
 				info.W = text
@@ -705,7 +682,7 @@ function tosvg(in_fname,		// file name
 			break
 		case 'w':
 			if (parse.state != 3
-			 || cfmt.writefields.indexOf('w') < 0)
+			 || cfmt.writefields.indexOf(line0) < 0)
 				break
 			get_lyrics(text, txt_add == ' ')
 			if (text.slice(-1) == '\\') {	// old continuation
@@ -714,13 +691,8 @@ function tosvg(in_fname,		// file name
 				continue
 			}
 			break
-		// music line
+		// "|:" starts a music line
 		case '|':
-			if (parse.state != 3) {		// not tune body
-				if (parse.state != 2)
-					continue
-				goto_tune()
-			}
 			parse_music_line()
 			continue
 		default:
@@ -751,7 +723,7 @@ function tosvg(in_fname,		// file name
 	if (include)
 		return
 	if (parse.state >= 2)
-		end_tune()
+		end_tune();
 	blk_flush();
 	parse.state = 0
 }

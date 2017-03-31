@@ -7,7 +7,7 @@ case $1 in
 		shift
 		;;
 	*)
-		cat tosvg.js >> /tmp/toto.js
+		cat toxhtml.js >> /tmp/toto.js
 		;;
 esac
 cat <<EOF >> /tmp/toto.js

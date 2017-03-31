@@ -1,6 +1,6 @@
-// abc2svg - tosvg.js - SVG generation
+// abc2svg - toxhtml.js - SVG generation
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
@@ -21,10 +21,7 @@ function abort(e) {
 }
 
 // generation variables and functions
-function img_out(str) {
-	print(str)
-}
-user.img_out = img_out;
+user.img_out = function(str) { print(str) };
 user.page_format = true
 
 // entry point from cmdline

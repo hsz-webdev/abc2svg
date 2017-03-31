@@ -1,10 +1,28 @@
 //#javascript
-// json.js file to generate a JSON representation of ABC
+// Generate a JSON representation of ABC
 //
 // Copyright (C) 2016 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.
+
+// Usage:
+//	// Define a get_abcmodel() callback function
+//	// This one is called by abc2svg after ABC parsing 
+//	user.get_abcmodel = json_callback
+//
+//	// In this function
+//	function json_callback(tsfirst, voice_tb, music_types, info) {
+//
+//		// Create a AbcJSON instance
+//		var abcjson = new AbcJSON();
+//
+//		// and generate the ABC representation
+//		json += abcjson.gen_json(tsfirst, voice_tb, anno_type, info);
+//	}
+//
+//	// result
+//	var json = ''
 
 // AbcJSON creation
 function AbcJSON(nindent) {			// indentation level

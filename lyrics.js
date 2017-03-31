@@ -1,6 +1,6 @@
 // abc2svg - lyrics.js - lyrics
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
@@ -170,7 +170,7 @@ function ly_width(s, wlw) {
 				else
 					sz = w
 			}
-			shift = (w - sz + 2 * cwid(' ') * swfac) * 0.4
+			shift = (w - sz + 2 * cwid(' ') * swfac) * .4
 			if (shift > 20)
 				shift = 20;
 			shift += sz
@@ -181,7 +181,7 @@ function ly_width(s, wlw) {
 		} else if (p == "-\n" || p == "_\n") {
 			shift = 0
 		} else {
-			shift = xx * 0.4
+			shift = xx * .4
 			if (shift > 20)
 				shift = 20
 		}
@@ -224,7 +224,7 @@ function ly_width(s, wlw) {
 	if (align > 0) {
 		for (i = 0; i < a_ly.length; i++) {
 			ly = a_ly[i]
-			if (ly.t[0] >= '0' && ly.t[0] <= '9')
+			if (ly && ly.t[0] >= '0' && ly.t[0] <= '9')
 				ly.shift = align
 		}
 	}
@@ -234,9 +234,9 @@ function ly_width(s, wlw) {
 /* -- draw the lyrics under (or above) notes -- */
 /* (the staves are not yet defined) */
 /* !! this routine is tied to ly_width() !! */
-function draw_lyric_line(p_voice, j, Y) {
+function draw_lyric_line(p_voice, j, y) {
 	var	l, p, lastx, w, s, s2, f, ly, lyl,
-		hyflag, lflag, x0, Y, font, shift, desc
+		hyflag, lflag, x0, font, shift, desc
 
 	if (p_voice.hy_st & (1 << j)) {
 		hyflag = true;
@@ -258,7 +258,7 @@ function draw_lyric_line(p_voice, j, Y) {
 			case REST:
 			case MREST:
 				if (lflag) {
-					out_wln(lastx + 3, Y, x0 - lastx);
+					out_wln(lastx + 3, y, x0 - lastx);
 					lflag = false;
 					lastx = s.x + s.wr
 				}
@@ -275,14 +275,14 @@ function draw_lyric_line(p_voice, j, Y) {
 			if (p == "_\n") {		/* '_' */
 				p = "-\n"
 			} else if (p != "-\n") {	/* not '-' */
-				out_hyph(lastx, Y, s.x - shift - lastx);
+				out_hyph(lastx, y, s.x - shift - lastx);
 				hyflag = false;
 				lastx = s.x + s.wr
 			}
 		}
 		if (lflag
 		 && p != "_\n") {		/* not '_' */
-			out_wln(lastx + 3, Y, x0 - lastx + 3);
+			out_wln(lastx + 3, y, x0 - lastx + 3);
 			lflag = false;
 			lastx = s.x + s.wr
 		}
@@ -316,7 +316,7 @@ function draw_lyric_line(p_voice, j, Y) {
 			}
 			anno_start(s2, 'lyrics')
 		}
-		xy_str(x0, Y, p);
+		xy_str(x0, y, p);
 		anno_stop(s2, 'lyrics')
 		lastx = x0 + w
 	}
@@ -325,7 +325,7 @@ function draw_lyric_line(p_voice, j, Y) {
 		x0 = realwidth - 10
 		if (x0 < lastx + 10)
 			x0 = lastx + 10;
-		out_hyph(lastx, Y, x0 - lastx)
+		out_hyph(lastx, y, x0 - lastx)
 		if (cfmt.hyphencont)
 			p_voice.hy_st |= (1 << j)
 	}
@@ -336,8 +336,7 @@ function draw_lyric_line(p_voice, j, Y) {
 			if (!s.a_ly)
 				break
 			ly = s.a_ly[j]
-			if (ly
-			 && ly.t == "_\n") {
+			if (ly && ly.t == "_\n") {
 				lflag = true;
 				x0 = realwidth - 15
 				if (x0 < lastx + 12)
@@ -347,39 +346,40 @@ function draw_lyric_line(p_voice, j, Y) {
 		}
 	}
 	if (lflag) {
-		out_wln(lastx + 3, Y, x0 - lastx + 3);
+		out_wln(lastx + 3, y, x0 - lastx + 3);
 		lflag = false
 	}
 }
 
 function draw_lyrics(p_voice, nly, a_h, y,
 				incr) {	/* 1: below, -1: above */
-	var j, top
+	var	j, top,
+		sc = staff_tb[p_voice.st].staffscale
 
 	set_font("vocal");
 	if (incr > 0) {				/* under the staff */
 		if (y > -cfmt.vocalspace)
-			y = -cfmt.vocalspace
-		y += a_h[0] / 6			// descent
-		y *= staff_tb[p_voice.st].staffscale
+			y = -cfmt.vocalspace;
+		y += a_h[0] / 6;		// descent
+		y *= sc
 		for (j = 0; j < nly; j++) {
 			y -= a_h[j] * 1.1;
 			draw_lyric_line(p_voice, j, y)
 		}
-		return y
+		return y / sc
 	}
 
 	/* above the staff */
 	top = staff_tb[p_voice.st].topbar + cfmt.vocalspace
 	if (y < top)
-		y = top
-	y += a_h[nly - 1] / 6			// descent
-	y *= staff_tb[p_voice.st].staffscale
+		y = top;
+	y += a_h[nly - 1] / 6;			// descent
+	y *= sc
 	for (j = nly; --j >= 0;) {
 		draw_lyric_line(p_voice, j, y);
 		y += a_h[j] * 1.1
 	}
-	return y
+	return y / sc
 }
 
 // -- draw all the lyrics --
@@ -482,6 +482,8 @@ function draw_all_lyrics() {
 			continue
 		}
 		st = p_voice.st;
+// don't scale the lyrics
+		set_dscale(st, true)
 		if (nly_tb[v] > 0)
 			lyst_tb[st].bot = draw_lyrics(p_voice, nly_tb[v],
 							h_tb[v],
@@ -493,6 +495,7 @@ function draw_all_lyrics() {
 		v = rv_tb[i];
 		p_voice = voice_tb[v];
 		st = p_voice.st;
+		set_dscale(st, true);
 		lyst_tb[st].top = draw_lyrics(p_voice, nly_tb[v],
 						h_tb[v],
 						lyst_tb[st].top, -1)

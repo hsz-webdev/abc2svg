@@ -1,6 +1,6 @@
 // abc2svg - format.js - formatting functions
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
@@ -16,13 +16,12 @@ var	defined_font = {},
 		Palatino: 1.1,
 		Mono: 1.35
 	},
-	lock= {}
+	fmt_lock = {}
 
 var cfmt = {
-//	autoclef: true,
 	aligncomposer: 1,
-//	botmargin: 0.7 * IN,		// != 1.8 * CM,
-	breaklimit: 0.7,
+//	botmargin: .7 * IN,		// != 1.8 * CM,
+	breaklimit: .7,
 	breakoneoln: true,
 	cancelkey: true,
 	composerspace: 6,
@@ -44,30 +43,30 @@ Z "Transcription: "\n\
 H "History: "',
 	infospace: 0,
 	keywarn: true,
-	leftmargin: 0.7 * IN,
+	leftmargin: .7 * IN,
 	lineskipfac: 1.1,
 	linewarn: true,
-	maxshrink: 0.65,
+	maxshrink: .65,
 	maxstaffsep: 2000,
 	maxsysstaffsep: 2000,
 	measurefirst: 1,
 	measurenb: -1,
 	musicspace: 6,
 //	notespacingfactor: 1.414,
-	parskipfac: 0.4,
+	parskipfac: .4,
 	partsspace: 8,
 //	pageheight: 29.7 * CM,
 	pagewidth: 21 * CM,
-	pos: {
-		dyn: 0,
-		gch: 0,
-		gst: 0,
-		orn: 0,
-		ste: 0,
-		voc: 0,
-		vol: 0
-	},
-	rightmargin: 0.7 * IN,
+//	pos: {
+//		dyn: 0,
+//		gch: 0,
+//		gst: 0,
+//		orn: 0,
+//		stm: 0,
+//		voc: 0,
+//		vol: 0
+//	},
+	rightmargin: .7 * IN,
 	rbdbstop: true,
 	rbmax: 4,
 	rbmin: 2,
@@ -76,7 +75,7 @@ H "History: "',
 	staffnonote: 1,
 	staffsep: 46,
 	stemheight: 21,			// one octave
-	stretchlast: 0.25,
+	stretchlast: .25,
 	stretchstaff: true,
 	subtitlespace: 3,
 	sysstaffsep: 34,
@@ -85,13 +84,13 @@ H "History: "',
 //	titleleft: false,
 	titlespace: 6,
 	titletrim: true,
-	transpose: 0,			// global transpose
-//	topmargin: 0.7 * IN,
+//	transp: 0,			// global transpose
+//	topmargin: .7 * IN,
 	topspace: 22,
 	tuplets: [0, 0, 0, 0],
 	vocalspace: 10,
-	voicecombine: 0,
-	voicescale: 1,
+//	voicecombine: 0,
+//	voicescale: 1,
 	writefields: "CMOPQTWw",
 	wordsspace: 5
 }
@@ -262,7 +261,7 @@ function get_textopt(param) {
 /* -- position of a voice element -- */
 const posval = {
 	above: SL_ABOVE,
-	auto: 0,
+	auto: 0,		// !! not SL_AUTO !!
 	below: SL_BELOW,
 	down: SL_BELOW,
 	hidden: SL_HIDDEN,
@@ -294,7 +293,7 @@ function set_pos(k,			// keyword
 		k = "orn"		// ornament
 		break
 	case 's':
-		k = "ste"		// stem
+		k = "stm"		// stem
 		break
 	case 'v':
 		if (k[2] == 'c')
@@ -306,13 +305,9 @@ function set_pos(k,			// keyword
 //fixme: error or no error?
 		return
 	}
-	if (curvoice) {
-		pos = clone(curvoice.pos);
-		curvoice.pos = pos
-	} else {
-		pos = cfmt.pos
-	}
-	pos[k] = val
+	if (curvoice)
+		curvoice.pos = clone(curvoice.pos);
+	set_v_param(k, val, 'pos')
 }
 
 // set/unset the fields to write
@@ -335,29 +330,34 @@ function set_writefields(param) {
 	}
 }
 
+// set a voice specific parameter
+function set_v_param(k, v, sub) {
+//	if (parse.state == 3) {
+	if (curvoice) {
+		if (sub)
+			curvoice[sub][k] = v
+		else
+			curvoice[k] = v
+		return
+	}
+	k = [k + '=', v];
+	var vid = '*'
+	if (!info.V)
+		info.V = {}
+	if (info.V[vid])
+		Array.prototype.push.apply(info.V[vid], k)
+	else
+		info.V[vid] = k
+}
+
 // set a format parameter
 function set_format(cmd, param, lock) {
 	var f, f2, v, box
 
-	// set a voice specific parameter
-	function set_v_param(k, v) {
-		if (curvoice) {
-			curvoice[k] = v
-			return
-		}
-		if (parse.state == 0) {
-			cfmt['voice' + k] = v
-			return
-		}
-		if (!parse.voice_param)
-			parse.voice_param = {}
-		parse.voice_param[k] = v
-	}
-
 //fixme: should check the type and limits of the parameter values
 	if (lock) {
-		lock[cmd] = true
-	} else if (lock[cmd])
+		fmt_lock[cmd] = true
+	} else if (fmt_lock[cmd])
 		return
 
 	if (cmd.match(/.+font$/)
@@ -402,18 +402,7 @@ function set_format(cmd, param, lock) {
 			parse.line.error("Bad value for %%microscale")
 			break
 		}
-		cfmt.microscale = f
-		if (parse.state == 0)
-			break
-//--fixme: should test curvoice
-		if (parse.state == 1) {
-			for (v = 0; v < voice_tb.length; v++)
-				voice_tb[v].microscale = cfmt.microscale
-		} else {
-			if (parse.state == 2)
-				goto_tune();
-			curvoice.microscale = cfmt.microscale
-		}
+		set_v_param("uscale", f)
 		break
 	case "bgcolor":
 	case "dblrepbar":
@@ -435,12 +424,11 @@ function set_format(cmd, param, lock) {
 			break
 		}
 		if (cmd == "scale")	// old scale
-			f /= 0.75
+			f /= .75
 		else if (cmd == "pagescale")
 			cmd = "scale";
 		cfmt[cmd] = f
 		break
-//	case "autoclef":
 	case "bstemdown":
 	case "breakoneoln":
 	case "cancelkey":
@@ -491,6 +479,9 @@ function set_format(cmd, param, lock) {
 	case "rightmargin":
 //	case "topmargin":
 		cfmt[cmd] = get_unitp(param)
+		break
+	case "concert-score":
+		cfmt.sound = "concert"
 		break
 	case "contbarnb":
 		cfmt.contbarnb = get_int(param)
@@ -550,11 +541,15 @@ function set_format(cmd, param, lock) {
 			space_tb[i] = f2
 		}
 		break
+	case "play":
+		cfmt.sound = "play"		// without clef
+		break
 	case "pos":
-		cmd = param.match(/(\w|-)+/);
-		cmd = cmd[0];
-		param = param.replace(cmd, '').trim();
-		set_pos(cmd, param)
+		cmd = param.split(/\s+/);
+		set_pos(cmd[0], cmd[1])
+		break
+	case "sounding-score":
+		cfmt.sound = "sounding"
 		break
 	case "staffwidth":
 		v = cfmt.pagewidth - get_unitp(param) - cfmt.leftmargin
@@ -585,7 +580,7 @@ function set_format(cmd, param, lock) {
 		break
 	case "voicescale":
 		v = parseFloat(param)
-		if (isNaN(v) || v < 0.6 || v > 1.5) {
+		if (isNaN(v) || v < .6 || v > 1.5) {
 			parse.line.error("Bad value for %%voicescale")
 			return
 		}

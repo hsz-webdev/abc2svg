@@ -1,6 +1,6 @@
 // abc2svg - parse.js - ABC parse
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
@@ -8,7 +8,7 @@
 var	a_gch,		// array of parsed guitar chords
 	a_dcn,		// array of parsed decoration names
 	multicol,	// multi column object
-	maps		// maps object - hashcode = map name
+	maps = {}	// maps object - hashcode = map name
 			//	-> object - hashcode = note
 			//	[0] array of heads
 			//	[1] print
@@ -25,7 +25,11 @@ function new_clef(clef_def) {
 			istart: parse.istart,
 			iend: parse.iend,
 			clef_line: 2,
-			clef_type: "t"
+			clef_type: "t",
+			v: curvoice.v,
+			p_v: curvoice,
+			time: curvoice.time,
+			dur: 0
 		},
 		i = 1
 
@@ -70,13 +74,13 @@ function new_clef(clef_def) {
 	case 'p':
 		i = 4
 	case 'P':				// perc
-		s.clef_type = "p"
+		s.clef_type = "p";
 		s.clef_line = 3
 		break
 	default:
 		parse.line.error("Unknown clef '$1'", clef_def)
 		delete s
-		return undefined
+		return //undefined
 	}
 	if (clef_def[i] >= '1' && clef_def[i] <= '9') {
 		s.clef_line = Number(clef_def[i]);
@@ -95,16 +99,15 @@ function new_clef(clef_def) {
 	case '-':
 		s.clef_octave = -7
 		break
-	default:
-		return s
 	}
 	return s
 }
 
-// get a %%transpose value
+// get a transposition value
 const pit_st = [0, 2, 4, 5, 7, 9, 11]
 
-function get_transp(param) {
+function get_transp(param,
+			type) {		// undefined or "instr"
 	var val, tmp, note, pit = []
 
 	if (param[0] == '0')
@@ -112,7 +115,8 @@ function get_transp(param) {
 	if ("123456789-+".indexOf(param[0]) >= 0) {	// by semi-tone
 		val = parseInt(param) * 3
 		if (isNaN(val) || val < -108 || val > 108) {
-			parse.line.error("Bad %%transpose value")
+//fixme: no source reference...
+			parse.line.error(1, "Bad transpose value")
 			return
 		}
 		switch (param.slice(-1)) {
@@ -131,34 +135,53 @@ function get_transp(param) {
 	}
 
 	// by music interval
+	if (type == "instr") {	// convert instr= into score= or sound=
+		tmp = param.indexOf('/')
+		if (!cfmt.sound) {
+			if (tmp < 0)
+				return 0	// written pitch
+			param = param.replace('/', '')
+		} else {
+			if (tmp < 0)
+				param = 'c' + param
+			else
+				param = param.replace(/.*\//, 'c')
+		}
+	}
+
 	tmp = new scanBuf();
 	tmp.buffer = param;
 	tmp.index = 0;
-	tmp.ctx = parse.ctx;
+	tmp.ctx = parse.ctx
 	for (i = 0; i < 2; i++) {
 		note = parse_acc_pit(tmp)
 		if (!note) {
-			parse.line.error("Bad %%transpose value")
+//			parse.line.error("Bad transpose value")
 			return
 		}
-		note.pit += 126 - 2;		// for value > 0 and 'C' % 7 == 0
+		note.pit += 124;	// 126 - 2 for value > 0 and 'C' % 7 == 0
 		val = ((note.pit / 7) | 0) * 12 + pit_st[note.pit % 7]
-		if (note.acc && note.acc != 3)		// if ! natural
+		if (note.acc && note.acc != 3)		// if not natural
 			val += note.acc;
 		pit[i] = val
 	}
+	if (cfmt.sound)
+		pit[0] = 252;			// 'c'
+
 	val = (pit[1] - pit[0]) * 3
-	switch (note.acc) {
-	default:
-		return val
-	case 2:
-	case 1:
-		val++
-		break
-	case -1:
-	case -2:
-		val += 2
-		break
+	if (note) {
+		switch (note.acc) {
+		default:
+			return val
+		case 2:
+		case 1:
+			val++
+			break
+		case -1:
+		case -2:
+			val += 2
+			break
+		}
 	}
 	if (val > 0)
 		return val
@@ -271,35 +294,36 @@ function set_user(param) {
 function get_st_lines(param) {
 	var n, val
 
-	if (param[0] == '|' || param[0] == '.')
-//fixme: should check if only '|' and '.', and no '.' at the end except when only '.'s
+	if (!param)
+		return
+	if (param.match(/^[|.]+$/))
 		return param
+
 	n = parseInt(param)
 	switch (n) {
-	case 0: return '...'
-	case 1: return '..|'
-	case 2: return '.||'
-	case 3: return '|||.'
+	case 0: return "..."
+	case 1: return "..|"
+	case 2: return ".||"
+	case 3: return ".|||"
 	}
 	if (isNaN(n) || n < 0 || n > 16)
-		return undefined
+		return //undefined
 	val = '|'
 	while (--n > 0)
 		val += '|'
 	return val
 }
 
-// create a text block in the tune body
+// create a block symbol in the tune body
 function new_block(subtype) {
 	var s = {
 		type: BLOCK,
-		subtype: subtype
+		subtype: subtype,
+		dur: 0
 	}
 
 	if (parse.state == 2)
 		goto_tune()
-	curvoice = voice_tb[0]
-//fixme: should search the control voice
 	if (curvoice.last_sym)
 		curvoice.last_sym.eoln = true;
 	sym_link(s)
@@ -314,16 +338,23 @@ function next_word(param, i) {
 	return i
 }
 
-// K: / V: common arguments
-// return the clef if any
-function parse_kv_args(a) {
-	var	s, item,
-		voice_param = curvoice
+// set the K: / V: parameters
+function set_kv_parm(a) {	// array of items
+	var	s, item, parm, pos
 
-	// if no current voice, this is the first K:
-	// the voice parameters will be set in goto_tune()
-	if (!voice_param)
-		voice_param = parse.voice_param = {}
+	// add the global parameters if not done yet
+	if (!curvoice.init) {
+		curvoice.init = true
+
+		if (info.V) {
+			if (info.V['*'])
+				a = info.V['*'].concat(a)
+			if (info.V[curvoice.id])
+				a = info.V[curvoice.id].concat(a)
+		}
+	}
+	if (a.length == 0)
+		return 0
 
 	while (1) {
 		item = a.shift()
@@ -331,40 +362,70 @@ function parse_kv_args(a) {
 			break
 		switch (item) {
 		case "clef=":
-			s = new_clef(a.shift())
+			s = a.shift()		// keep last clef
 			break
+		case "combine=":		// %%voicecombine
+		case "map=":			// %%voicemap
 		case "octave=":
-//fixme: no if inside tune
-//			if (voice_param.octave) {
-//				parse.line.error("Double 'octave='")
-//				break
-//			}
-			voice_param.octave = Number(a.shift())
-			break
-		case "map=":
-			voice_param.map = a.shift()
+		case "scale=":			// %%voicescale
+		case "uscale=":			// %%microscale
+			item = item.slice(0, -1);
+			curvoice[item] = a.shift()
 			break
 		case "cue=":
-//			if (voice_param.scale) {
-//				parse.line.error("Double 'scale='/'cue='")
-//				break
-//			}
-			voice_param.scale = a.shift() == 'on' ? 0.7 : 1
+			curvoice.scale = a.shift() == 'on' ? .7 : 1
+			break
+		case "instrument=":
+			curvoice.transp = get_transp(a.shift(), 'instr')
+			break
+		case "name=":
+		case "nm=":
+			curvoice.nm = a.shift();
+			curvoice.new_name = true
+			break
+		case "stem=":
+			item = "stm"
+		case "dyn=":			// %%pos
+		case "gch=":
+		case "gst=":
+		case "orn=":
+		case "stm=":
+		case "voc=":
+		case "vol=":
+			item = item.slice(0, -1)
+			if (!pos)
+				pos = {}
+			pos[item] = a.shift()
+			break
+		case "score=":
+			if (cfmt.sound)
+				break
+			item = a.shift()
+			if (item.indexOf('/') < 0)
+				item += '/c';
+			curvoice.transp = get_transp(item)
+			break
+		case "shift=":
+			curvoice.shift = get_transp(a.shift())
+			break
+		case "sound=":
+		case "transpose=":		// (abcMIDI compatibility)
+			if (!cfmt.sound)
+				break
+			curvoice.transp = get_transp(a.shift())
+			break
+		case "subname=":
+		case "sname=":
+		case "snm=":
+			curvoice.snm = a.shift()
 			break
 		case "stafflines=":
 			item = get_st_lines(a.shift())
-			if (!item) {
+			if (item == undefined)
 				parse.line.error("Bad stafflines= value")
-				break
-			}
-			voice_param.stafflines = item
+			else
+				curvoice.stafflines = item
 			break
-//		case "staffscale=":
-//			voice_param.staffscale = Number(a.shift())
-//			break
-//		case "middle":
-//			a.shift()
-//			break			// middle= ignored
 		default:
 			switch (item.slice(0, 4)) {
 			case "treb":
@@ -372,11 +433,11 @@ function parse_kv_args(a) {
 			case "alto":
 			case "teno":
 			case "perc":
-				s = new_clef(item)
+				s = item
 				break
 			default:
 				if ("GFC".indexOf(item[0]) >= 0)
-					s = new_clef(item)
+					s = item
 				else if (item.slice(-1) == '=')
 					a.shift()
 				break
@@ -384,32 +445,54 @@ function parse_kv_args(a) {
 			break
 		}
 	}
-	return s
+	if (pos) {
+		curvoice.pos = clone(curvoice.pos)
+		for (item in pos)
+			curvoice.pos[item] = pos[item]
+	}
+
+	if (s) {
+		s = new_clef(s)
+		if (s)
+			get_clef(s)
+	}
+}
+
+// memorize the K:/V: parameters
+function memo_kv_parm(vid,	// voice ID (V:) / '*' (K:/V:*)
+			a) {	// array of items
+	if (a.length == 0)
+		return
+	if (!info.V)
+		info.V = {}
+	if (info.V[vid])
+		Array.prototype.push.apply(info.V[vid], a)
+	else
+		info.V[vid] = a
 }
 
 // K: key signature
-// return the key and the optional clef
+// return the key and the voice/clef parameters
 function new_key(param) {
 	var	i, clef, key_end, c, tmp,
-//		mode,
+		mode = 0,
 		s = {
 			type: KEY,
 			ctx: parse.ctx,
 			istart: parse.istart,
 			iend: parse.iend,
-			k_delta: 0
+			k_delta: 0,
+			dur:0
 		}
 
-	if (!param.length)
-		return [s, null]
-
 	// tonic
-//	mode = 0;
 	i = 1
 	switch (param[0]) {
 	case 'A': s.k_sf = 3; break
 	case 'B': s.k_sf = 5; break
-	case 'C': s.k_sf = 0; break
+	case 'C':
+		s.k_sf = 0
+		break
 	case 'D': s.k_sf = 2; break
 	case 'E': s.k_sf = 4; break
 	case 'F': s.k_sf = -1; break
@@ -457,31 +540,31 @@ function new_key(param) {
 		case "aeo":
 		case "m":
 		case "min": s.k_sf -= 3;
-//			mode = 5;
+			mode = 5
 			break
 		case "dor": s.k_sf -= 2;
-//			mode = 1;
+			mode = 1
 			break
 		case "ion":
 		case "maj": break
 		case "loc": s.k_sf -= 5;
-//			mode = 6;
+			mode = 6
 			break
 		case "lyd": s.k_sf += 1;
-//			mode = 3;
+			mode = 3
 			break
 		case "mix": s.k_sf -= 1;
-//			mode = 4;
+			mode = 4
 			break
 		case "phr": s.k_sf -= 4;
-//			mode = 2;
+			mode = 2
 			break
 		default:
 			if (param[0] == 'm'
 			 && (param[1] == ' ' || param[1] == '\t'
 			  || param[1] == '\n')) {
 				s.k_sf -= 3;
-//				mode = 5
+				mode = 5
 				break
 			}
 			key_end = true
@@ -525,11 +608,10 @@ function new_key(param) {
 		}
 	}
 
-	s.k_delta = (cgd2cde[(s.k_sf + 7) % 7] + 14) % 7
+	s.k_delta = (cgd2cde[(s.k_sf + 7) % 7] + 14) % 7;
+	s.k_mode = mode
 
-	if (!param)
-		return [s, null]	// key only
-	return [s, parse_kv_args(info_split(param, 0))]
+	return [s, info_split(param, 0)]
 }
 
 // M: meter
@@ -539,6 +621,7 @@ function new_meter(text) {
 			ctx: parse.ctx,
 			istart: parse.istart,
 			iend: parse.iend,
+			dur:0,
 			a_meter: []
 		},
 		meter = {},
@@ -690,16 +773,17 @@ function new_meter(text) {
 
 /* Q: tempo */
 function new_tempo(text) {
-	if (cfmt.writefields.indexOf('Q') < 0)
-		return
-
 	var	i = 0, j, c, nd, tmp,
 		s = {
 			type: TEMPO,
 			ctx: parse.ctx,
 			istart: parse.istart,
-			iend: parse.iend
+			iend: parse.iend,
+			dur: 0
 		}
+
+	if (cfmt.writefields.indexOf('Q') < 0)
+		s.del = true			// don't display
 
 	/* string before */
 	if (text[0] == '"') {
@@ -756,7 +840,7 @@ function new_tempo(text) {
 		}
 		c = tmp.char()
 		while (c == ' ')
-			c = tmp.next_char();
+			c = tmp.next_char()
 	}
 
 	/* string after */
@@ -773,21 +857,20 @@ function new_tempo(text) {
 	if (parse.state != 3) {
 		if (parse.state == 1) {			// tune header
 			info.Q = text;
-			glovar.tempo = s;
+			glovar.tempo = s
 			return
 		}
-		goto_tune()				// tune header after K:
+		goto_tune()
 	}
-	if (curvoice.v != par_sy.top_voice)
-		return				/* tempo only for first voice */
-//--fixme				/* keep last Q: */
-	sym_link(s)
+	if (curvoice.v == par_sy.top_voice)	/* tempo only for first voice */
+		sym_link(s)
+//--fixme					/* keep last Q: (?) */
 }
 
 // treat the information fields which may embedded
 // return the info field type if possible continuation
 function do_info(info_type, text) {
-	var s
+	var s, d1, d2, a, vid
 
 	switch (info_type) {
 
@@ -796,20 +879,38 @@ function do_info(info_type, text) {
 		do_pscom(text)
 		break
 	case 'L':
-		if (text.match(/^\d*\/\d*$/)) {
-			text = BASE_LEN * eval(text)
+//fixme: ??
+		if (parse.state == 2)
+			goto_tune()
+		a = text.match(/^(\d+)\/(\d+)(=(\d+)\/(\d+))?$/)
+		if (a) {
+			d1 = Number(a[2])
+			if (!d1 || (d1 & (d1 - 1)) != 0)
+				break
+			d1 = Number(a[1]) / d1 * BASE_LEN
+			if (a[3]) {
+				d2 = Number(a[5])
+				if (!d2 || (d2 & (d2 - 1)) != 0) {
+					d2 = 0
+					break
+				}
+				d2 = Number(a[4]) / d2 * BASE_LEN
+			} else {
+				d2 = d1
+			}
 		} else if (text == "auto") {
-			text = -1
-		} else {
+			d1 = d2 = -1
+		}
+		if (!d2) {
 			parse.line.error("Bad L: value")
 			break
 		}
-		if (parse.state == 2)
-			goto_tune()
-		if (parse.state != 3)
-			glovar.ulen = Number(text)
-		else
-			curvoice.ulen = Number(text)
+		if (parse.state < 2) {
+			glovar.ulen = d1
+		} else {
+			curvoice.ulen = d1;
+			curvoice.dur_fact = d2 / d1
+		}
 		break
 	case 'M':
 		new_meter(text)
@@ -828,14 +929,15 @@ function do_info(info_type, text) {
 		}
 		if (parse.state == 2)
 			goto_tune()
-		if (cfmt.writefields.indexOf('P') < 0)
+		if (cfmt.writefields.indexOf(info_type) < 0)
 			break
 		s = {
 			type: PART,
 			ctx: parse.ctx,
 			istart: parse.istart,
 			iend: parse.iend,
-			text: text
+			text: text,
+			dur: 0
 		}
 
 		/*
@@ -863,25 +965,15 @@ function do_info(info_type, text) {
 		new_tempo(text)
 		break
 	case 'V':
-		if (parse.state == 0)
-			break
-		if (parse.state == 2)
-			goto_tune();
 		get_voice(text)
-		if (!curvoice.last_sym
-		 && parse.voice_opts)
-			voice_filter()
 		break
 
-	// key signature and end of tune header
+	// key signature at end of tune header on in tune body
 	case 'K':
-		get_key_clef(new_key(text))
-		break
-
-	// note mapping
-	case 'k':
-		parse.line.error("k: is obsolete - use %%map instead")
-		get_map(text)
+		if (parse.state == 0
+		 || !text)
+			break
+		get_key(new_key(text))
 		break
 
 	// info in any state
@@ -901,7 +993,8 @@ function do_info(info_type, text) {
 			ctx: parse.ctx,
 			istart: parse.istart,
 			iend: parse.iend,
-			text: text
+			text: text,
+			dur: 0
 		}
 		sym_link(s)
 		break
@@ -984,6 +1077,7 @@ function new_bar() {
 //temporary
 //			istart: parse.istart,
 //			iend: parse.iend,
+			dur: 0,
 			multi: 0		// needed for decorations
 		}
 
@@ -1100,7 +1194,9 @@ function new_bar() {
 		adjust_dur(s)
 
 	s2 = curvoice.last_sym
-	if (s2 && s2.type == BAR) {
+	if (s2 && s2.type == SPACE) {
+		s2.time--		// keep the space at the right place
+	} else if (s2 && s2.type == BAR) {
 
 		/* remove the invisible repeat bars when no shift is needed */
 		if (bar_type == "["
@@ -1165,7 +1261,6 @@ function new_bar() {
 		curvoice.lyric_restart = s
 
 	/* the bar must appear before a key signature */
-//	s2 = curvoice.last_sym
 	if (s2 && s2.type == KEY
 	 && (!s2.prev || s2.prev.type != BAR)) {
 		curvoice.last_sym = s2.prev
@@ -1205,10 +1300,11 @@ function new_bar() {
 	}
 }
 
-/* -- parse %%staves / %%score -- */
+// parse %%staves / %%score
+// return an array of [vid, flags] / null
 function parse_staves(param) {
-	var	v, p_flags, v_id,
-		a_flags = [],
+	var	v, vid,
+		a_vf = [],
 		err = false,
 		flags = 0,
 		brace = 0,
@@ -1272,14 +1368,11 @@ function parse_staves(param) {
 			}
 
 			/* get / create the voice in the voice table */
-			v_id = ""
+			vid = ""
 			while (i < p.length) {
 				if (" \t()[]{}|*".indexOf(p[i]) >= 0)
 					break
-				v_id += p[i++]
-			}
-			p_flags = {
-				v: new_voice(v_id).v
+				vid += p[i++]
 			}
 			for ( ; i < p.length; i++) {
 				switch (p[i]) {
@@ -1327,11 +1420,8 @@ function parse_staves(param) {
 				}
 				break
 			}
-			p_flags.flags = flags;
-			a_flags.push(p_flags);
+			a_vf.push([vid, flags]);
 			flags = 0
-//			if (i >= p.length)
-//				break
 			continue
 		}
 		i++
@@ -1340,9 +1430,9 @@ function parse_staves(param) {
 		parse.line.error("'}', ')' or ']' missing in %%staves");
 		err = true
 	}
-	if (err || a_flags.length == 0)
+	if (err || a_vf.length == 0)
 		return null
-	return a_flags
+	return a_vf
 }
 
 // split an info string
@@ -1403,57 +1493,6 @@ function info_split(text,
 	if (item)
 		a.push(item)
 	return a
-}
-
-/* -- parse the voice parameters (V:) -- */
-/* return the clef if defined here */
-function parse_voice(param) {
-	var	v,
-		a = info_split(param, 1),
-		item = a.shift();
-
-	// get/create the voice from its ID and switch to it
-	curvoice = new_voice(item)
-	if (curvoice.time == undefined) {	// new voice
-		curvoice.time = 0
-		if (parse.state == 3		// tune body
-		 && staves_found < 0) {
-			v = curvoice.v;
-			curvoice.st = curvoice.cst = ++nstaff;
-			par_sy.nstaff = nstaff;
-			par_sy.voices[v].st = nstaff;
-			par_sy.voices[v].range = v;
-			par_sy.staves[nstaff] = {
-				stafflines: "|||||",
-				staffscale: 1
-			}
-		}
-	}
-	
-	for (var i = 0; i < a.length; i++) {
-		switch (a[i]) {
-		case "name=":
-		case "nm=":
-			curvoice.nm = a[++i];
-			curvoice.new_name = true
-			break
-		case "subname=":
-		case "sname=":
-		case "snm=":
-			curvoice.snm = a[++i]
-			break
-//		case "merge":
-//			break
-		case "stem=":
-			set_pos("stem", a[++i])
-			break
-		default:
-			if (a[i].slice(-1) == '=')
-				i++
-			break
-		}
-	}
-	return parse_kv_args(a)
 }
 
 /* -- get head type, dots, flags of note/rest for a duration -- */
@@ -1547,7 +1586,7 @@ function parse_dur(line) {
 
 // parse the note accidental and pitch
 function parse_acc_pit(line) {
-	var	acc, micro_n, micro_d, pit,
+	var	note, acc, micro_n, micro_d, pit,
 		c = line.char()
 
 	// optional accidental
@@ -1583,7 +1622,7 @@ function parse_acc_pit(line) {
 		micro_n = nd[0];
 		micro_d = nd[1]
 		if (micro_d == 1)
-			micro_d = curvoice.microscale
+			micro_d = curvoice.uscale
 		else
 			micro_d *= 2;	// 1/2 tone fraction -> tone fraction
 		c = line.char()
@@ -1593,8 +1632,8 @@ function parse_acc_pit(line) {
 	pit = "CDEFGABcdefgab".indexOf(c) + 16;
 	c = line.next_char()
 	if (pit < 16) {
-		line.error("'" + line.buffer[line.index - 1] + "' is not a note")
-		return undefined
+		line.error("'$1' is not a note", line.buffer[line.index - 1])
+		return //undefined
 	}
 
 	// octave
@@ -1712,15 +1751,8 @@ function note_transp(s) {
 		sf_old = curvoice.okey.k_sf,
 		i2 = curvoice.ckey.k_sf - sf_old,
 		dp = cgd2cde[(i2 + 4 * 7) % 7],
-		t = curvoice.transpose
+		t = curvoice.vtransp
 
-//	if (t > 0) {
-//		dp += Math.floor(t / 3 / 12) * 7
-//	} else {
-//		if (dp != 0)
-//			dp -= 7;
-//		dp -= Math.floor(-t / 3 / 12) * 7
-//	}
 	if (t < 0 && dp != 0)
 		dp -= 7;
 	dp += ((t / 3 / 12) | 0) * 7
@@ -1854,6 +1886,9 @@ function new_note(grace, tuplet_fact) {
 //temporary
 	s.istart = parse.bol + line.index
 
+	if (curvoice.color)
+		s.color = curvoice.color
+
 	if (grace) {
 		s.grace = true
 	} else {
@@ -1883,6 +1918,7 @@ function new_note(grace, tuplet_fact) {
 	case 'y':
 		s.type = SPACE;
 		s.invis = true;
+		s.dur = 0;
 		c = line.next_char()
 		if (c >= '0' && c <= '9')
 			s.width = line.get_int()
@@ -1893,13 +1929,14 @@ function new_note(grace, tuplet_fact) {
 		s.invis = true
 	case 'z':
 		s.type = REST;
-		line.advance()
+		line.advance();
 		nd = parse_dur(line);
-		s.dur = s.dur_orig = ((curvoice.ulen < 0) ? BASE_LEN / 4 :
+		s.dur_orig = ((curvoice.ulen < 0) ? BASE_LEN / 4 :
 					curvoice.ulen) * nd[0] / nd[1];
+		s.dur = s.dur_orig * curvoice.dur_fact;
 		s.notes = [{
 			pit: 18,
-			dur: s.dur
+			dur: s.dur_orig
 		}]
 		break
 	case '[':			// chord
@@ -1907,8 +1944,8 @@ function new_note(grace, tuplet_fact) {
 		c = line.next_char()
 		// fall thru
 	default:			// accidental, chord, note
-		if (curvoice.microscale)
-			s.microscale = curvoice.microscale;
+		if (curvoice.uscale)
+			s.uscale = curvoice.uscale;
 		s.notes = []
 
 		// loop on the chord
@@ -1964,7 +2001,9 @@ function new_note(grace, tuplet_fact) {
 
 			// transpose
 			if (curvoice.octave)
-				note.apit = note.pit += curvoice.octave * 7;
+				note.apit = note.pit += curvoice.octave * 7
+			if (curvoice.ottava)
+				note.pit += curvoice.ottava
 			if (sl1) {
 				note.sl1 = sl1
 				if (s.sl1)
@@ -2026,8 +2065,8 @@ function new_note(grace, tuplet_fact) {
 		}
 
 		// the duration of the chord is the duration of the 1st note
-		s.dur = s.dur_orig = s.notes[0].dur
-
+		s.dur_orig = s.notes[0].dur;
+		s.dur = s.notes[0].dur * curvoice.dur_fact
 	}
 	if (s.grace && s.type != NOTE) {
 		line.error("Not a note in grace note sequence")
@@ -2035,20 +2074,17 @@ function new_note(grace, tuplet_fact) {
 	}
 
 	if (s.notes) {				// if note or rest
-		if (s.type == NOTE && curvoice.transpose)
-			note_transp(s)
-
 		if (!s.grace) {
-			switch (curvoice.pos.ste) {
+			switch (curvoice.pos.stm) {
 			case SL_ABOVE: s.stem = 1; break
 			case SL_BELOW: s.stem = -1; break
+			case SL_HIDDEN: s.stemless = true; break
 			}
 
 			s.combine = curvoice.combine
 
 			// adjust the symbol duration
-			if (tuplet_fact)
-				s.dur *= tuplet_fact;
+			s.dur *= tuplet_fact;
 			num = curvoice.brk_rhythm
 			if (num) {
 				curvoice.brk_rhythm = 0;
@@ -2086,6 +2122,10 @@ function new_note(grace, tuplet_fact) {
 					s2.stemless = true
 				else
 					delete s2.stemless
+
+				// adjust the time of the grace notes, bars... 
+				for (s2 = s2.next; s2; s2 = s2.next)
+					s2.time = curvoice.time
 			}
 		} else {		/* grace note - adjust its duration */
 			var div = curvoice.key.k_bagpipe ? 8 : 4
@@ -2138,7 +2178,11 @@ function new_note(grace, tuplet_fact) {
 		}
 		curvoice.last_note = s
 	}
+
 	sym_link(s)
+
+	if (s.type == NOTE && curvoice.vtransp)
+		note_transp(s)
 
 	if (cfmt.shiftunison)
 		s.shiftunison = cfmt.shiftunison
@@ -2208,6 +2252,12 @@ function parse_music_line() {
  var line = parse.line;
  line.buffer = parse.file.slice(parse.bol, parse.eol);
  line.index = 0;
+
+	if (parse.state != 3) {		// if not in tune body
+		if (parse.state != 2)
+			return
+		goto_tune()
+	}
 
 	while (1) {
 		c = line.char()
@@ -2292,7 +2342,8 @@ function parse_music_line() {
 					tuplet_q: qplet,
 					tuplet_r: rplet,
 					tuplet_n: rplet,
-					tuplet_f: clone(cfmt.tuplets)
+					tuplet_f: clone(cfmt.tuplets),
+					dur: 0
 				}
 				sym_link(s);
 				s_tuplet_up = s_tuplet;
@@ -2337,27 +2388,29 @@ function parse_music_line() {
 			if (!a_dcn)
 				a_dcn = []
 			if (type.length > 1) {	// decoration letter
-				a_dcn.push(type.slice(1, -1))
-				break
-			}
-			dcn = "";
-			i = line.index		// in case no deco end
-			while (1) {
-				c = line.next_char()
-				if (c == '%')
-					c = 0
-				if (!c)
+				dcn = type.slice(1, -1)
+			} else {
+				dcn = "";
+				i = line.index		// in case no deco end
+				while (1) {
+					c = line.next_char()
+					if (c == '%')
+						c = 0
+					if (!c)
+						break
+					if (c == '!')
+						break
+					dcn += c
+				}
+				if (!c) {
+					line.index = i;
+					line.error("No end of decoration")
 					break
-				if (c == '!')
-					break
-				dcn += c
+				}
 			}
-			if (!c) {
-				line.index = i;
-				line.error("No end of decoration")
-				break
-			}
-			a_dcn.push(dcn)
+			a_dcn.push(dcn);
+			if (dcn[0] == '8' || dcn[0] == '1')
+				set_ottava(dcn)
 			break
 		case '"':
 			parse_gchord(type)
@@ -2548,8 +2601,11 @@ function parse_music_line() {
 
 	if (s_tuplet)
 		line.error("No end of tuplet")
-	if (grace)
+	if (grace) {
 		line.error("No end of grace note sequence")
+		if (curvoice.last_note)
+			curvoice.last_note.gr_end = true
+	}
 	if (cfmt.breakoneoln && curvoice.last_note)
 		curvoice.last_note.beam_end = true
 	if (no_eol || cfmt.barsperstaff)

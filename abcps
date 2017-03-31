@@ -8,7 +8,7 @@ function readFile(fname) {
 
 load("abcps2svg-1.js")
 load("cmdline.js")
-load("tosvg.js")
+load("toxhtml.js")
 
 // main
     var	args = scriptArgs

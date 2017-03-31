@@ -42,12 +42,6 @@ function dump_obj(obj) {
 	print(" -->")
 }
 
-function debug() {
-	errtxt += "debug:"
-	for (var i = 0; i < arguments.length; i++)
-		user.errmsg(" " + arguments[i]);
-}
-
 function do_file(fname) {
 	var i, j, file, file2;
 	j = fname.lastIndexOf("/")
@@ -73,7 +67,7 @@ function do_file(fname) {
 }
 
 function abc_cmd(cmd, args) {
-	var	arg, param, fname;
+	var arg, param, fname;
 
 	abc = new Abc(user);
 	abc_init(abc)
@@ -88,13 +82,15 @@ function abc_cmd(cmd, args) {
 						" " + param + "\n")
 			}
 		} else {
-			if (fname)
+			if (fname) {
 				do_file(fname);
+				abc.tosvg('cmd', '%%select\n')
+			}
 			fname = arg
 		}
 	}
 	if (fname)
-		do_file(fname)
+		do_file(fname);
 
 	abc_end(abc)
 }

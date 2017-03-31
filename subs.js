@@ -1,6 +1,6 @@
 // abc2svg - subs.js - text output
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
@@ -120,11 +120,11 @@ function out_str(str) {
 //	'c' align center
 //	'r' align right
 //	'\t' handle the tabulations - dx is the space between the fields
-//	'j' justify - dx is the line width
+//	'j' justify - line_w is the line width
 //	otherwise align left
 function xy_str(x, y, str,
 		 action,
-		 dx) {
+		 line_w) {
 	output.push('<text class="f' + gene.curfont.fid + cfmt.fullsvg + '" x="');
 	out_sxsy(x, '" y="', y)
 	switch (action) {
@@ -132,7 +132,7 @@ function xy_str(x, y, str,
 		output.push('" text-anchor="middle">')
 		break
 	case 'j':
-		output.push('" textLength="' + dx.toFixed(2) + '">')
+		output.push('" textLength="' + line_w.toFixed(2) + '">')
 		break
 	case 'r':
 		output.push('" text-anchor="end">')
@@ -143,6 +143,24 @@ function xy_str(x, y, str,
 	}
 	out_str(str);
 	output.push("</text>\n")
+}
+
+// output a string in a box
+function xy_str_b(x, y, str) {
+// not in the SVG documentation,
+// but this works for almost all browsers but firefox
+//	output.push('<g style="outline: solid black;\
+// outline-width: 1px">\n');
+//	xy_str(x, y, str, action, line_w);
+//	output.push('</g>\n')
+	var	w = strw(str);
+
+	output.push('<rect class="stroke" x="');
+	out_sxsy(x - 2, '" y="', y + gene.curfont.size - 2);
+	output.push('" width="' + (w + 4).toFixed(2) +
+		'" height="' + (gene.curfont.size + 3).toFixed(2) +
+		'"/>\n');
+	xy_str(x, y, str)
 }
 
 /* -- move trailing "The" to front, set to uppercase letters or add xref -- */
@@ -183,11 +201,11 @@ function write_title(title, is_subtitle) {
 		vskip(cfmt.titlespace + sz)
 	}
 	if (cfmt.titleleft)
-		xy_str(0, sz * 0.2, title)
+		xy_str(0, sz * .2, title)
 	else
 		xy_str((cfmt.pagewidth - cfmt.leftmargin - cfmt.rightmargin)
 				/ 2 / cfmt.scale,
-				sz * 0.2, title, "c")
+				sz * .2, title, "c")
 }
 
 /* -- output a header format '111 (222)' -- */
@@ -292,45 +310,43 @@ function write_text(text, action) {
 	}
 }
 
-/* -- output a line of words after tune -- */
-function put_wline(p, x, right) {
-	var i = 0, j, k
-
-	while (p[i] == ' ')
-		i++
-	if (p[i] == '$' && p[i +  1] >= '0' && p[i + 1] <= '9')
-		i += 2;
-	k = 0;
-	j = i
-	if ((p[i] >= '0' && p[i] <= '9') || p[i + 1] == '.') {
-		while (i < p.length) {
-			i++
-			if (p[i] == ' '
-			 || p[i - 1] == ':'
-			 || p[i - 1] == '.')
-				break
-		}
-		k = i
-		while (p[i] == ' ')
-			i++
-	}
-
-	if (k != 0)
-		xy_str(x, 0, p.slice(j, k), 'r')
-	if (i < p.length)
-		xy_str(x + 5, 0, p.slice(i), 'l')
-	return i > p.length && k == 0
-}
-
 /* -- output the words after tune -- */
 function put_words(words) {
 	var p, i, j, n, nw, i2, i_end, have_text;
+
+	// output a line of words after tune
+	function put_wline(p, x, right) {
+		var i = 0, j, k
+
+		if (p[i] == '$' && p[i +  1] >= '0' && p[i + 1] <= '9')
+			i += 2;
+		k = 0;
+		j = i
+		if ((p[i] >= '0' && p[i] <= '9') || p[i + 1] == '.') {
+			while (i < p.length) {
+				i++
+				if (p[i] == ' '
+				 || p[i - 1] == ':'
+				 || p[i - 1] == '.')
+					break
+			}
+			k = i
+			while (p[i] == ' ')
+				i++
+		}
+
+		if (k != 0)
+			xy_str(x, 0, p.slice(j, k), 'r')
+		if (i < p.length)
+			xy_str(x + 5, 0, p.slice(i), 'l')
+		return i >= p.length && k == 0
+	} // put_wline()
 
 	blk_out();
 	set_font("words")
 
 	/* see if we may have 2 columns */
-	var	middle = 0.5 * (cfmt.pagewidth - cfmt.leftmargin - cfmt.rightmargin) /
+	var	middle = .5 * (cfmt.pagewidth - cfmt.leftmargin - cfmt.rightmargin) /
 				cfmt.scale,
 		max2col = (middle - 45.) / (cwid('a') * gene.curfont.swfac);
 	n = 0;
@@ -353,9 +369,7 @@ function put_words(words) {
 		}
 	}
 	if (n > 0) {
-		n++;
-		n /= 2;
-		i = n;
+		i = n = ((n + 1) / 2) | 0;
 		have_text = false
 		for (i_end = 0; i_end < nw; i_end++) {
 			p = words[i_end];
@@ -379,7 +393,7 @@ function put_words(words) {
 	vskip(cfmt.wordsspace)
 
 	for (i = 0; i < i_end || i2 < nw; i++) {
-		var desc = gene.curfont.size * 0.2
+		var desc = gene.curfont.size * .2
 //fixme:should also permit page break on stanza start
 		if (i < i_end && words[i].length == 0)
 			blk_out();
@@ -395,7 +409,7 @@ function put_words(words) {
 
 						/* center the last words */
 /*fixme: should compute the width average.. */
-						middle *= 0.6
+						middle *= .6
 					}
 				}
 			}
@@ -436,7 +450,7 @@ function put_history() {
 			vskip(h);
 			xy_str(w, 0, str[j])
 		}
-		vskip(h * 0.3);
+		vskip(h * .3);
 		blk_out()
 	}
 }
@@ -528,7 +542,7 @@ function write_headform(lwidth) {
 		},
 		xa = {
 			l: 0,
-			c: lwidth * 0.5,
+			c: lwidth * .5,
 			r: lwidth
 		},
 		yb = {},
@@ -601,13 +615,11 @@ function write_headform(lwidth) {
 					var w = tempo_width(glovar.tempo)
 
 					if (align == 'c')
-						w *= 0.5;
+						w *= .5;
 					x -= w
 				}
-				write_tempo(glovar.tempo, x, -y, 0.75);
-//				info.Q = null;
-//				glovar.tempo = null
-				glovar.tempo.deleted = true /* don't display in tune */
+				if (!glovar.tempo.del)
+					write_tempo(glovar.tempo, x, -y, .75)
 			} else if (str) {
 				xy_str(x, -y, str, align)
 			}
@@ -650,7 +662,9 @@ function write_heading() {
 		lwidth = (cfmt.pagewidth - cfmt.leftmargin - cfmt.rightmargin) /
 				cfmt.scale
 
-	if (cfmt.titleformat && cfmt.titleformat.length > 0) {
+	vskip(cfmt.topspace)
+
+	if (cfmt.titleformat) {
 		write_headform(lwidth);
 		vskip(cfmt.musicspace)
 		return
@@ -696,7 +710,7 @@ function write_heading() {
 			xcomp = 0;
 			align = ' '
 		} else if (cfmt.aligncomposer == 0) {
-			xcomp = lwidth * 0.5;
+			xcomp = lwidth * .5;
 			align = 'c'
 		} else {
 			xcomp = lwidth;
@@ -751,7 +765,7 @@ function write_heading() {
 		down1 = cfmt.partsspace + gene.curfont.size - down1
 		if (down1 > 0)
 			down2 += down1
-		if (down2 > 0.01)
+		if (down2 > .01)
 			vskip(down2);
 		xy_str(0, 0, info.P);
 		down2 = 0

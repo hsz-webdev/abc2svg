@@ -1,57 +1,19 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN"
-    "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<script src="@PATH@/@JS@" type="text/javascript" async="true"></script>
-<script src="@PATH@/play-@MAJOR@.js" type="text/javascript" async="true"></script>
-<style>
-	body, html {height: 90%;}
-	svg {display:block}
-	text tspan {white-space:pre; fill:currentColor}
-	#dright:hover {z-index: 10 !important}
-	#dright:active {z-index: 10 !important}
-	.help { position:relative; display:inline;}
-	.help>aside {
-		display: none;
-		position: absolute; width:400px; left:-150px; top:20px;
-		background-color:#e0e0e0; font-size:small;
-		border:1px solid black}
-	.help:hover>aside {display:block; z-index: 20}
-	@media screen {
-		#dright {
-			width: auto;
-			position: absolute; top: 0; bottom:0; right:0;
-			background-color: white;
-			overflow: auto
-		}
-	}
-	@media print {
-		#dright>div {
-			visibility: visible
-		}
-		#dleft, #dright {
-			visibility: hidden
-		}
-	}
-</style>
-<title>ABC edit with abc2svg@PS@</title>
-
-<script type="text/javascript">
-<![CDATA[
+// edit.js - file used in the abc2svg editor
 var	abc_images,			// image buffer
 	abc_fname = ["noname.abc", ""],	// file names
 	abc,				// Abc object
 	ref= [],			// source reference array
 	colcl = [],			// colorized classes
 	abcplay,			// play engine
-	playing
-
-// debug
-function debug(msg) {
-	var diverr = document.getElementById("diverr");
-	diverr.innerHTML += msg + "<br/>\n"
-}
+	a_pe,				// playing events
+	playing,
+	texts = {			// language specific texts
+		bad_nb: 'Bad line number',
+		fn: 'File name: ',
+		load: 'Please, load the included file ',
+		play: 'Play',
+		stop: 'Stop'
+	}
 
 // -- Abc create argument
 const ignore_types = {
@@ -60,7 +22,7 @@ const ignore_types = {
 		tuplet: true
 }
 var user = {
-	// -- required methodes
+	// -- required methods
 	// include a file (%%abc-include - only one)
 	read_file: function(fn) {
 		document.getElementById("s" + srcidx).style.display = "inline"
@@ -104,11 +66,6 @@ var user = {
 		abc.out_svg('" width="' + w.toFixed(2) +
 			'" height="' + h.toFixed(2) + '"/>\n')
 	},
-	// for playing
-	get_abcmodel: function(tsfirst, voice_tb, music_types) {
-		if (abcplay && playing)
-			abcplay.add(tsfirst, voice_tb[0].key)
-	},
 	// -- optional attributes
 	page_format: true		// define the non-page-breakable blocks
     },
@@ -116,21 +73,44 @@ var user = {
 
 // -- local functions
 
-// load the (ABC source or include) file in its textarea
+// load the language files ('edit-lang.js' and 'err-lang.js')
+function relay() { loadtxt() }
+function loadlang(lang) {
+	function loadjs(fn, with_relay) {
+		var s = document.createElement('script');
+		s.src = fn;
+		s.type = 'text/javascript'
+		if (with_relay) {
+			s.onload = relay;
+			s.onreadystatechange = relay
+		}
+		document.head.appendChild(s)
+	}
+	loadjs('edit-' + lang + '.js', true);
+	loadjs('err-' + lang + '.js')
+}
+
+// show/hide a popup message
+function popshow(area, visible) {
+	document.getElementById(area).style.visibility =
+		visible ? 'visible' : 'hidden'
+}
+
+// load the (ABC source or include) file in the textarea
 function loadtune() {
 	var files = document.getElementById("abcfile").files
-	if (!files.length) {
-		alert('Please select a file!')
-		return
-	}
+//	if (!files.length) {
+//		alert('Please select a file!')
+//		return
+//	}
 	abc_fname[srcidx] = files[0].name
 
 	var reader = new FileReader();
 
 	// Closure to capture the file information
-	reader.onloadend = function(e) {
+	reader.onloadend = function(evt) {
 		var	i, j, sl,
-			content = e.target.result,
+			content = evt.target.result,
 			s = srcidx == 0 ? "source" : "src1"
 		document.getElementById(s).value = content;
 		document.getElementById("s" + srcidx).value = abc_fname[srcidx];
@@ -160,8 +140,9 @@ function render() {
 		target = document.getElementById("target"),
 		diverr = document.getElementById("diverr"),
 		content = document.getElementById("source").value
+	a_pe = null
 	if (!content)
-		return
+		return			// empty source
 
 	// if include file not loaded yet, ask it
 	i = content.indexOf('%%abc-include ')
@@ -172,26 +153,20 @@ function render() {
 			j = content.indexOf('\n', i);
 			sl.value = content.slice(i + 14, j);
 			selsrc(1);
-			alert('Please, load the included file ' + sl.value);
+			alert(texts.load + sl.value)
 			return
 		}
 	}
 	user.img_out = user.my_img_out;
 	abc = new Abc(user);
 	abc_images = '';
-	abc.tosvg('edit', '%%bgcolor white\n\
-%%beginsvg\n\
-<style type="text/css">\n\
-	rect.abcr {fill:#a08000; fill-opacity:0; z-index: 15}\n\
-	rect.abcr:hover {fill-opacity:0.3}\n\
-</style>\n\
-%%endsvg\n');
+//	abc.tosvg('edit', '%%bgcolor white');
 
 	diverr.innerHTML = '';
 //	document.body.style.cursor = "wait";
 	ref = []
 	try {
-		abc.tosvg(abc_fname[0], document.getElementById("source").value);
+		abc.tosvg(abc_fname[0], content)
 	} catch(e) {
 		alert(e.message + '\nabc2svg tosvg bug - stack:\n' + e.stack)
 		return
@@ -204,6 +179,10 @@ function render() {
 		alert(e.message + '\nabc2svg image bug - abort')
 		return
 	}
+
+	// show the 'Error' button if some error
+	document.getElementById("er").style.display =
+				diverr.innerHTML ? 'inline' : 'none';
 
 	// set callbacks on all abc rectangles
 	setTimeout(function(){
@@ -226,7 +205,7 @@ function gotoabc(l, c) {
 	while (--l >= 0) {
 		idx = s.value.indexOf('\n', idx) + 1
 		if (idx <= 0) {
-			alert('bad line number');
+			alert(texts.bad_nb);
 			idx = s.value.length - 1;
 			c = 0
 			break
@@ -266,7 +245,7 @@ function selabc(me) {
 		i2 = i1 + Number(d_s_l_d[2]),
 		s = document.getElementById("source");
 	s.focus();
-	s.setSelectionRange(i1, i2);
+	s.setSelectionRange(i1, i2)
 
 // does not work
 //	s = document.getElementById("dright");
@@ -316,32 +295,20 @@ function seltxt(elt) {
 function saveas() {      
 	var	s = srcidx == 0 ? "source" : "src1",
 		source = document.getElementById(s).value,
-
-	// create a Blob (html5 magic) that contains the ABC source
-		blob = new Blob([source, '\n% Created by abc2svg editor'],
-				{type:'text/plain;charset=UTF-8"'}),
+		uriContent = "data:text/plain;charset=utf-8," +
+				encodeURIComponent(source),
 
 	// create a link for our script to 'click'
 		link = document.createElement("a");
 
 	document.getElementById("s" + srcidx).value =
 		link.download =
-			abc_fname[srcidx] = prompt('File name: ',
-						abc_fname[srcidx]);
+			abc_fname[srcidx] =
+				prompt(texts.fn, abc_fname[srcidx]);
 	link.innerHTML = "Hidden Link";	
+	link.href = uriContent;
 
-	// allow the code to work in webkit & Gecko based browsers
-	// without the need for a if / else block.
-//jfm:window.URL is well defined in dwb (base webkit)
-//	window.URL = window.URL || window.webkitURL;
-          
-	// Create the link Object.
-	if (typeof saveURL != 'undefined')
-		window.URL.revokeObjectURL(saveURL);
-	saveURL = window.URL.createObjectURL(blob);
-	link.href = saveURL;
-
-	// open in a new tab for dwb
+	// open in a new tab
 	link.target = '_blank';
 
 	// when link is clicked call a function to remove it from
@@ -359,8 +326,8 @@ function saveas() {
 }
 
 // destroy the clicked element
-function destroyClickedElement(event) {
-	document.body.removeChild(event.target);
+function destroyClickedElement(evt) {
+	document.body.removeChild(evt.target)
 }
 
 // set the size of the font of the textarea
@@ -373,7 +340,7 @@ function setfont() {
 // playing
 //fixme: do tune/start-stop selection of what to play 
 function endplay() {
-	document.getElementById("playbutton").setAttribute("value", "Play");
+	document.getElementById("playbutton").setAttribute("value", texts.play);
 	playing = false
 }
 function play_tune() {
@@ -382,47 +349,81 @@ function play_tune() {
 		endplay()
 		return
 	}
-	delete user.img_out
-	var abc = new Abc(user);
-	playing = true;			// get the schema and stop SVG generation
-	abcplay.clear()			// clear all playing events
-	try {
-		abc.tosvg(abc_fname[0], document.getElementById("source").value);
-	} catch(e) {
-		alert(e.message + '\nabc2svg tosvg bug - stack:\n' + e.stack);
-		playing = false
-		return
+	playing = true;
+	if (!a_pe) {			// if no playing event
+		user.img_out = null	// get the schema and stop SVG generation
+
+		var abc = new Abc(user);
+
+		abcplay.clear();
+		abc.tosvg("play", "%%sounding-score")
+		try {
+			abc.tosvg(abc_fname[0], document.getElementById("source").value)
+		} catch(e) {
+			alert(e.message + '\nabc2svg tosvg bug - stack:\n' + e.stack);
+			playing = false;
+			a_pe = null
+			return
+		}
+		a_pe = abcplay.clear();	// keep the playing events
 	}
-	document.getElementById("playbutton").setAttribute("value", "Stop");
-	abcplay.play(0, 100000)		// play all events
+	document.getElementById("playbutton").setAttribute("value", texts.stop);
+	abcplay.play(0, 100000, a_pe)	// play all events
 }
 
 // set the version and initialize the playing engine
 function edit_init() {
+
+	// loop until abc2svg is loaded
 	if (typeof abc2svg != "object"
-	 || !abc2svg.version
-	 || typeof AbcPlay != "function") {
+	 || !abc2svg.version) {
 		setTimeout(edit_init, 500)
 		return
 	}
 	document.getElementById("abc2svg").innerHTML =
-		'abc2svg-' + abc2svg.version + ' (' + abc2svg.vdate + ')';
-	abcplay = new AbcPlay(endplay)
-	if (!abcplay.play) {
-		delete abcplay;
-//		document.getElementById("playbutton").style.display = "none"
-		document.getElementById("playdiv").style.display = "none"
+		'abc2svg-' + abc2svg.version + ' (' + abc2svg.vdate + ')'
+
+	// set the callback functions
+	var e = document.getElementById("saveas");
+	e.addEventListener("click", saveas);
+	e = document.getElementById("s0");
+	e.addEventListener("click", function(){selsrc(0)});
+	e = document.getElementById("s1");
+	e.addEventListener("click", function(){selsrc(1)})
+
+	// if playing is possible, load the playing scripts
+	if (window.AudioContext || window.webkitAudioContext) {
+		var script = document.createElement('script');
+		script.src = "play-@MAJOR@.js";
+		script.onload = function() {
+			abcplay = new AbcPlay(endplay,
+//fixme: switch comment for test
+				"https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/")
+//				"./")
+		}
+		document.head.appendChild(script);
+
+		user.get_abcmodel =
+			function(tsfirst, voice_tb, music_types, info) {
+				if (playing)
+					abcplay.add(tsfirst, voice_tb)
+			}
+		document.getElementById("playbutton").style.display =
+			document.getElementById("playdiv").style.display =
+				"inline-block";
+		e = document.getElementById("playbutton");
+		e.addEventListener("click", play_tune)
 	}
 }
 
 // drag and drop
-function drag_over(ev) {
-	ev.stopPropagation();
-	ev.preventDefault()	// allow drop
+function drag_over(evt) {
+	evt.stopPropagation();
+	evt.preventDefault()	// allow drop
 }
 function dropped(evt) {
 	evt.stopPropagation();
-	evt.preventDefault();
+	evt.preventDefault()
 	// check if text
 	var data = evt.dataTransfer.getData("text")
 	if (data) {
@@ -431,18 +432,17 @@ function dropped(evt) {
 		return
 	}
 	// check if file
-	data = evt.dataTransfer.files // FileList object.
+	data = evt.dataTransfer.files	// FileList object.
 	if (data.length != 0) {
 		var reader = new FileReader();
-		reader.onload = function(event) {
+		reader.onload = function(evt) {
 			document.getElementById('source').value =
-					event.target.result
+					evt.target.result;
 			src_change()
 		}
 		reader.readAsText(data[0],"UTF-8")
 		return
 	}
-	return
 }
 
 // render the music after 2 seconds on textarea change
@@ -452,120 +452,5 @@ function src_change(evt) {
 	timer = setTimeout(render, 2000)
 }
 
+// wait for scripts to be loaded
 setTimeout(edit_init, 500)
-]]>
-</script>
-
-</head>
-<body ontouchstart="">
-
-<!-- left -->
-<div id="dleft" style="width: auto;
-	position: absolute; top: 0; bottom:0; left: 0;
-	background-color:#faf0e6;
-	z-index: 2;
-	overflow: auto;">
-
-<h4 style="text-align: center">ABC web editor@PS@</h4>
-
-<!-- buttons -->
-Font size:
-<input type="number" id="fontsize" min="10" max="20" value="14" onchange="setfont()"/>
-
-<input id="saveas" type="button" value="Save"/>
-<!-- <input id="render" type="button" value="Render the tunes"/> -->
-<!-- help -->
-<div class="help">Help
-<aside>
-<ul>
-<li>You may either:
-    <ul>
-	<li>directly write ABC code in the text area, or</li>
-	<li>paste ABC code in the text area, or</li>
-	<li>load a local ABC file ('Load a ABC file' button), or</li>
-	<li>drag &amp; drop a local file from your file manager
-		or a selected text to the text area.</li>
-    </ul></li>
-<li>You may change at will the ABC code in the text area.<br/>
-	Rendering is done 2 seconds later.</li>
-<!-- <li>Click on 'Render the tunes' to render the tunes
-	on the right side of the page.</li> -->
-<li>The 'Print' of the browser outputs the rendering area.</li>
-</ul>
-</aside>
-</div>
-<br/>
-<div id="playdiv">
-General volume:
-<input id="gvol" type="range" min="1" max="10" value="7"
-	onchange="abcplay.set_g_vol(this.value / 10)"/>
-<input id="playbutton" type="button" value="Play"/>
-<br/>
-Oscillator volume:
-<input id="ovol" type="range" min="1" max="8" value="2"
-	onchange="abcplay.set_o_vol(this.value / 10)"/>
-</div>
-<input id="s0" type="button" style="display: inline; background-color: #80ff80"
-	value="(noname)"/>
-<input id="s1" type="button" style="display: none; background-color: #ffd0d0"
-	value=""/>
-<input type="file" id="abcfile" accept="text/*"
-	style="display:none" onchange="loadtune()"/>
-<label for="abcfile">Load a ABC file</label>
-
-<!-- ABC source in textarea (main and include) -->
-<br/>
-<textarea id="source" rows="32" cols="72"
-	onselect="seltxt(this)"
-	ondrop="dropped(event)" ondragenter="drag_over(event)"
-	ondragover="drag_over(event)"
-	style="font-family: monospace; font-size: 14px"></textarea>
-<textarea id="src1" rows="32" cols="72"
-	style="font-family: monospace; font-size: 14px; display: none"></textarea>
-
-<!-- errors -->
-<font color="red" background-color="white">
-<div id="diverr"
-	style="height: 100px; width: 100%; overflow-y: auto">
-</div>
-</font>
-<p id="abc2svg">abc2svg</p>
-</div>
-
-<!-- right - needed for the scrollbars -->
-<div id="dright">
-
-<!-- rendering area -->
-<div id="target" class="target">
-<svg xmlns="http://www.w3.org/2000/svg"
-	xmlns:xlink="http://www.w3.org/1999/xlink"
-	xml:space="preserve"
-	width="8.3in" height="2in" viewBox="0 0 595 144">
-<title>(empty)</title>
-<text x="250" y="100" font-family="serif" font-size="12">(empty)</text>
-</svg>
-</div>
-</div>
-
-<script type="text/javascript">
-// the click callbacks must be defined after XHTML parsing
-	var e = document.getElementById("saveas");
-	e.addEventListener("click", saveas);
-	e = document.getElementById("playbutton");
-	e.addEventListener("click", play_tune);
-//	e = document.getElementById("render");
-//	e.addEventListener("click", render);
-	e = document.getElementById("s0");
-	e.addEventListener("click", function(){selsrc(0)});
-	e = document.getElementById("s1");
-	e.addEventListener("click", function(){selsrc(1)});
-	e = document.getElementById("source");
-	e.addEventListener("keyup", src_change)
-	e.addEventListener("paste", src_change)
-	e = document.getElementById("src1");
-	e.addEventListener("keyup", src_change)
-	e.addEventListener("paste", src_change)
-</script>
-
-</body>
-</html>

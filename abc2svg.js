@@ -1,6 +1,6 @@
 // abc2svg - abc2svg.js
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
@@ -64,11 +64,6 @@ const	BAR = 0,
 	YSTEP = 128		/* number of steps for y offsets */
 
 var	glovar = {
-		clef:  {
-			type: CLEF,		// clef in tune header
-			clef_auto: true,
-			clef_type: "a"		// auto
-		},
 		meter: {
 			type: METER,		// meter in tune header
 			wmeasure: 1,		// no M:
@@ -108,14 +103,9 @@ function errbld(sev, txt, fn, idx) {
 	if (idx != undefined && idx >= 0) {
 		l = 0;
 		i = -1;
-		c = 0
 		while (1) {
 			j = parse.file.indexOf('\n', i + 1)
-			if (j < 0) {
-				i = parse.file.length - 1
-				break
-			}
-			if (j > idx)
+			if (j < 0 || j > idx)
 				break
 			l++;
 			i = j
@@ -140,7 +130,7 @@ function errbld(sev, txt, fn, idx) {
 	user.errmsg(h + txt, l, c)
 }
 
-function error(sev, s, msg) {
+function error(sev, s, msg, a1, a2, a3, a4) {
 	var i, j, regex, tmp
 
 	if (user.textrans) {
@@ -148,10 +138,15 @@ function error(sev, s, msg) {
 		if (tmp)
 			msg = tmp
 	}
-	for (i = 3, j = 1; i < arguments.length; i++, j++) {
-		regex = new RegExp('\\$' + j, 'g');
-		msg = msg.replace(regex, arguments[i])
-	}
+	if (arguments.length > 3)
+		msg = msg.replace(/\$./g, function(a) {
+			switch (a) {
+			case '$1': return a1
+			case '$2': return a2
+			case '$3': return a3
+			default  : return a4
+			}
+		})
 	if (s && s.ctx)
 		errbld(sev, msg, s.ctx.fname, s.istart)
 	else
@@ -192,7 +187,7 @@ function scanBuf() {
 		}
 		return parseFloat(txt)
 	}
-	this.error = function(msg) {
+	this.error = function(msg, a1, a2, a3, a4) {
 		var i, regex, tmp
 
 		if (user.textrans) {
@@ -200,15 +195,20 @@ function scanBuf() {
 			if (tmp)
 				msg = tmp
 		}
-		for (i = 1; i < arguments.length; i++) {
-			regex = new RegExp('\\$' + i, 'g');
-			msg = msg.replace(regex, arguments[i])
-		}
+		if (arguments.length > 1)
+			msg = msg.replace(/\$./g, function(a) {
+				switch (a) {
+				case '$1': return a1
+				case '$2': return a2
+				case '$3': return a3
+				default  : return a4
+				}
+			})
 		errbld(1, msg, parse.ctx.fname, this.index + parse.bol - 1)
 	}
 }
 
-function syntax(sev, msg) {
+function syntax(sev, msg, a1, a2, a3, a4) {
 	var i, j, regex, tmp
 
 	if (user.textrans) {
@@ -216,10 +216,15 @@ function syntax(sev, msg) {
 		if (tmp)
 			msg = tmp
 	}
-	for (i = 2, j = 1; i < arguments.length; i++, j++) {
-		regex = new RegExp('\\$' + j, 'g');
-		msg = msg.replace(regex, arguments[i])
-	}
+	if (arguments.length > 2)
+		msg = msg.replace(/\$./g, function(a) {
+			switch (a) {
+			case '$1': return a1
+			case '$2': return a2
+			case '$3': return a3
+			default  : return a4
+			}
+		})
 	errbld(sev, msg, parse.ctx.fname, parse.istart)
 }
 

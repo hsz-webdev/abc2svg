@@ -1,16 +1,19 @@
-%%beginjs
-// french translation of the error codes:
+//JS abc2svg - french translation of the error codes:
 //				traduction des codes d'erreur en français
+// Appelez ce fichier dans la ligne de commande pour avoir
+// les messages d'erreur en français
+
 user.textrans = {
 	"+: lyric without music": "+: paroles sans musique",
 	"+: without previous info field": "Pas de ligne info avant +:",
-	"'{' in grace note": "'{' dans notes d'agrément"
+	"'{' in grace note": "'{' dans notes d'agrément",
 	"'}', ')' or ']' missing in %%staves":
 				"Il manque '}', ')' ou ']' dans %%staves",
 	"',' lacking in annotation '@x,y'":
 				"Il manque une ',' dans l'annotation '@x,y'",
-	"$1: inside tune - ignored": "$1: en milieu de morceau - ignoré",
+	"'$1' is not a note": "'$1' n'est pas une note",
 	"'$1:' line ignored": "'$1:' ligne ignorée",
+	"$1: inside tune - ignored": "$1: en milieu de morceau - ignoré",
 	"!$1! must be on a note": "!$1! doit être sur une note",
 	"!$1! must be on a note or a rest":
 				"!$1! doit être sur une note ou un soupir",
@@ -41,19 +44,21 @@ user.textrans = {
 	"Bad %%staff value '$1'": "Valeur incorrecte '$1' dans %%staff",
 	"Bad %%stafflines value": "Valeur incorrecte dans %%stafflines",
 	"Bad %%staffscale value": "Valeur incorrecte dans %%staffscale",
-	"Bad %%transpose value": "Valeur %%transpose incorrecte",
 	"Bad char '$1' in M:": "Mauvais caractère '$1' dans M:",
 	"Bad character '}'": "Caractère '}' mal placé",
 	"Bad character ')'": "Caractère ')' mal placé",
 	"Bad character '$1'": "Mauvais caractère '$1'",
 	"Bad duration '$1' in M:": "Durée '$1' incorrecte dans M:",
 	"Bad integer value": "Mauvaise valeur entière",
+	"Bad instr= value": "Mauvaise valeur de instr=",
 	"Bad L: value": "Mauvaise valeur pour L:",
 	"Bad note in %%map": "Note incorrecte dans %%map",
-	"Bad page width $1": "Mauvaise largeur de page $1",
+	"Bad page width": "Mauvaise largeur de page",
+	"Bad program in %%MIDI": "Mauvais 'program' dans %%MIDI",
 	"Bad scale value in %%font": "Mauvaise échelle dans %%font",
 	"Bad stafflines= value": "Valeur incorrecte pour stafflines=",
 	"Bad tie": "Mauvaise liaison de prolongation",
+	"Bad transpose value": "Mauvaise valeur de transposition",
 	"Bad user character '$1'": "Caractère illégal '$1' dans U:/%%user",
 	"Bad value '$1' in %%linebreak - ignored":
 				"Valeur incorrecte '$1' dans %%linebreak - ignorée",
@@ -61,7 +66,8 @@ user.textrans = {
 	"Bad value for %%microscale": "Mauvaise valeur pour %%microscale",
 	"Bad value for %%notespacingfactor":
 				"Mauvaise valeur pour %%notespacingfactor",
-	"Bad value for %%voicecombine": "Mauvaise valeur pour %%microscale",
+	"Bad value for %%ottava": "Mauvaise valeur de %%ottava",
+	"Bad value for %%voicecombine": "Mauvaise valeur pour %%voicecombine",
 	"Bad value for %%voicescale": "Mauvaise valeur pour %%voicescale",
 	"Bad voice ID in %%staves": "Mauvaise identité de voix dans %%staves",
 	"Bar in repeat sequence": "Barre dans la séquence à répéter",
@@ -80,8 +86,6 @@ user.textrans = {
 	"Invalid 'r' in tuplet": "'r' invalide dans des tuplets",
 	"Invalid decoration '$1'": "Décoration '$1' invalide",
 	"Invalid note duration $1": "Durée de note $1 invalide",
-	"k: is obsolete - use %%map instead":
-				 "k: est obsolète - utiliser %%map",
 	"Lack of ']'": "']' manque",
 	"Lack of ending $1 in U:/%%user": "Pas de $1 terminant U:/%%user",
 	'Lack of starting ! or " in U: / %%user':
@@ -99,7 +103,7 @@ user.textrans = {
 	"Misplaced dot": "Point mal placé",
 	"No $1 after %%$2": "Pas de $1 après %%$2",
 	"No </defs> in %%beginsvg sequence":
-				"Pas de  </defs> dans séquence %%beginsvg"
+				"Pas de  </defs> dans séquence %%beginsvg",
 	"No </style> in %%beginsvg sequence":
 				"Pas de </style> dans séquence %%beginsvg",
 	"No accidental after 'exp'": "Pas d'altération après 'exp'",
@@ -107,7 +111,7 @@ user.textrans = {
 	"No end of grace note sequence": "Pas de fin de notes d'agrément",
 	"No end of guitar chord": "Pas de fin d'accord de guitare",
 	"No end of repeat string": "Chaine de répétition non terminée",
-	"No end of tuplet": "Pas de fin de tuplet"
+	"No end of tuplet": "Pas de fin de tuplet",
 	"No function for decoration '$1'": "Pas de fonction pour decoration '$1'",
 	"No note before '-'": "Pas de note devant '-'",
 	"No note before '<'": "Pas de note devant '<'",
@@ -120,14 +124,12 @@ user.textrans = {
 	"Not an ASCII character": "Ce n'est pas un caractère ASCII",
 	"Not enough bar lines for lyric line":
 				"Pas assez de barres pour la ligne de paroles",
-	"Not enough bars after repeat measure":
-				"Pas assez de barres après mesure à répéter",
-	"Not enough measures to repeat": "Pas assez de mesures à répéter",
+	"Not enough measures for %%repeat":
+				"Pas assez de mesures pour %%repeat",
 	"Not enough parameters in %%map":
 				"Pas assez de paramètres dans %%map",
-	"Not enough symbols after repeat sequence":
-				 "Pas assez de symboles après séquence à répéter",
-	"Not enough symbols to repeat": "Pas assez de symboles à répéter",
+	"Not enough notes/rests for %%repeat":
+				 "Pas assez de notes/silences pour %%repeat",
 	"Note too long": "Durée de note trop longue",
 	"Note too short": "Durée de note trop courte",
 	"Too many include levels": "Trop de niveaux d'inclusion de fichier",
@@ -146,4 +148,3 @@ user.textrans = {
 	"Wrong duration in voice overlay":
 				"Mauvaise durée de la voix superposée",
 }
-%%endjs

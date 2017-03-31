@@ -1,11 +1,11 @@
 // abc2svg - gchord.js - guitar chords
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
 
-/* -- parse a guitar chord / annotation -- */
+// -- parse a chord indication / annotation --
 // the result is added in the global variable a_gch
 // 'type' may be a single '"' or a string '"xxx"' created by U:
 function parse_gchord(type) {
@@ -24,10 +24,10 @@ function parse_gchord(type) {
 				return parseFloat(txt)
 			txt += c
 		}
-	} // get_float
+	} // get_float()
 
 	istart = parse.bol + line.index
-	if (type.length > 1) {
+	if (type.length > 1) {			// U:
 		text = type.slice(1, -1);
 		iend = istart + 1
 	} else {
@@ -46,7 +46,7 @@ function parse_gchord(type) {
 			}
 			text += c
 		}
-		iend = parse.bol + line.index
+		iend = parse.bol + line.index + 1
 	}
 
 	if (curvoice.pos.gch == SL_HIDDEN)
@@ -137,18 +137,19 @@ function parse_gchord(type) {
 	}
 }
 
-/* transpose a guitar chord */
+// transpose a chord indication
 const	note_names = "CDEFGAB",
 	latin_names = [ "Do", "Ré", "Mi", "Fa", "Sol", "La", "Si" ],
 	acc_name = ["bb", "b", "", "#", "##"]
 
 function gch_transp(s) {
 	var	gch, p,
-		i = 0
+		i = 0,
+		i2 = curvoice.ckey.k_sf - curvoice.okey.k_sf
 
 	function gch_tr1(p) {
 		var	new_txt, l,
-			n, i1, i2, i3, i4, ix, a, ip, ip2,
+			n, i1, i3, i4, ix, a, ip, ip2,
 			latin = 0
 
 		/* main chord */
@@ -158,7 +159,7 @@ function gch_transp(s) {
 		case 'C': n = 0; break
 		case 'D':
 			if (p[1] == 'o') {
-				latin = 1;
+				latin++;
 				n = 0		/* Do */
 				break
 			}
@@ -167,26 +168,26 @@ function gch_transp(s) {
 		case 'E': n = 2; break
 		case 'F':
 			if (p[1] == 'a')
-				latin = 1;	/* Fa */
+				latin++;	/* Fa */
 			n = 3
 			break
 		case 'G': n = 4; break
 		case 'L':
-			latin = 1;		/* La */
+			latin++;		/* La */
 			n = 5
 			break
 		case 'M':
-			latin = 1;		/* Mi */
+			latin++;		/* Mi */
 			n = 2
 			break
 		case 'R':
-			latin = 1
+			latin++
 			if (p[1] != 'e')
 				latin++;	/* Ré */
 			n = 1			/* Re */
 			break
 		case 'S':
-			latin = 1
+			latin++
 			if (p[1] == 'o') {
 				latin++;
 				n = 4		/* Sol */
@@ -194,39 +195,46 @@ function gch_transp(s) {
 				n = 6		/* Si */
 			}
 			break
+		case '/':			// bass only
+			latin--
+			break
 		default:
 			return p
 		}
 
 		a = 0;
 		ip = latin + 1
-		if (p[ip] == '#') {
-			a++;
-			ip++
+		if (latin >= 0) {		// if some chord
 			if (p[ip] == '#') {
 				a++;
 				ip++
-			}
-		} else if (p[ip] == 'b') {
-			a--;
-			ip++
-			if (p[ip] == 'b') {
+				if (p[ip] == '#') {
+					a++;
+					ip++
+				}
+			} else if (p[ip] == 'b') {
 				a--;
 				ip++
+				if (p[ip] == 'b') {
+					a--;
+					ip++
+				}
+			} else if (p[ip] == '=') {
+				ip++
 			}
-		} else if (p[ip] == '=') {
-			ip++
+			i3 = cde2fcg[n] + i2 + a * 7;
+			i4 = cgd2cde[(i3 + 16 * 7) % 7];	// note
+			i1 = ((((i3 + 22) / 7) | 0) + 159) % 5	// accidental
+//			   = ((((i3 + 1 + 21) / 7) | 0) + 2 - 3 + 32 * 5) % 5
+			if (latin == 0)
+				new_txt = note_names[i4] + acc_name[i1]
+			else
+				new_txt = latin_names[i4] + acc_name[i1]
+		} else {
+			new_txt = ''
 		}
-		i2 = curvoice.ckey.k_sf - curvoice.okey.k_sf;
-		i3 = cde2fcg[n] + i2 + a * 7;
-		i4 = cgd2cde[(i3 + 16 * 7) % 7];			// note
-		i1 = ((((i3 + 1 + 21) / 7) | 0) + 2 - 3 + 32 * 5) % 5 // accidental
-		if (!latin)
-			new_txt = note_names[i4] + acc_name[i1]
-		else
-			new_txt = latin_names[i4] + acc_name[i1];
 
-		ip2 = p.indexOf('/', ip)
+		ip2 = p.indexOf('/', ip)	// skip 'm'/'dim'..
 		if (ip2 < 0)
 			return new_txt + p.slice(ip);
 
@@ -273,10 +281,10 @@ function gch_transp(s) {
 	gch.text = gch_tr1(p)
 }
 
-/* -- build the guitar chords / annotations -- */
+// -- build the chord indications / annotations --
 function gch_build(s) {
 
-	/* split the guitar chords / annotations
+	/* split the chord indications / annotations
 	 * and initialize their vertical offsets */
 	var	gch, w, xspc, ix,
 		pos = curvoice.pos.gch == SL_BELOW ? -1 : 1,
@@ -293,13 +301,13 @@ function gch_build(s) {
 	s.a_gch = a_gch;
 	a_gch = null
 
-	if (curvoice.transpose)
+	if (curvoice.vtransp)
 		gch_transp(s)
 
 	// change the accidentals in the guitar chords,
 	// convert the escape sequences in annotations, and
 	// set the offsets
-	const	GCHPRE = 0.4		// portion of guitar chord before note
+	const	GCHPRE = .4		// portion of guitar chord before note
 	for (ix = 0; ix < s.a_gch.length; ix++) {
 		gch = s.a_gch[ix]
 		if (gch.type == 'g') {
@@ -402,11 +410,11 @@ function gch_build(s) {
 	}
 }
 
-/* -- draw the guitar chords and annotations -- */
-/* (the staves are not yet defined) */
+/* -- draw the chord indications and annotations -- */
+// (the staves are not yet defined)
+// (unscaled delayed output)
 function draw_gchord(s, gchy_min, gchy_max) {
-	var	gch, gch2, text, ix, x, y, i, j,
-		box, hbox, xboxl, xboxr, yboxh, yboxl
+	var	gch, gch2, text, ix, x, y, y2, i, j, hbox
 
 	/* adjust the vertical offset according to the guitar chords */
 //fixme: w may be too small
@@ -434,12 +442,7 @@ function draw_gchord(s, gchy_min, gchy_max) {
 		}
 	}
 
-//	output = staff_tb[s.st].output;
-	set_dscale(s.st);
-	xboxr = xboxl = s.x;
-	yboxh = -100;
-	yboxl = 100;
-	box = 0
+	set_dscale(s.st, true);
 	for (ix = 0; ix < n; ix++) {
 		gch = s.a_gch[ix];
 		use_font(gch.font);
@@ -451,11 +454,11 @@ function draw_gchord(s, gchy_min, gchy_max) {
 		switch (gch.type) {
 		case '_':			/* below */
 			y = gch.y + y_below;
-			y_set(s.st, 0, x, w, y - h * 0.2 - 2)
+			y_set(s.st, 0, x, w, y - h * .2 - 2)
 			break
 		case '^':			/* above */
 			y = gch.y + y_above;
-			y_set(s.st, 1, x, w, y + h * 0.8 + 2)
+			y_set(s.st, 1, x, w, y + h * .8 + 2)
 			break
 		case '<':			/* left */
 /*fixme: what symbol space?*/
@@ -469,7 +472,7 @@ function draw_gchord(s, gchy_min, gchy_max) {
 				x += 1.5 + 3.5 * s.dots;
 			y = gch.y + yav
 			break
-		default:			/* guitar chord */
+		default:			// chord indication
 			hbox = gch.box ? 3 : 2
 			if (gch.y >= 0) {
 				y = gch.y + y_above;
@@ -477,18 +480,6 @@ function draw_gchord(s, gchy_min, gchy_max) {
 			} else {
 				y = gch.y + y_below;
 				y_set(s.st, false, x, w, y - hbox)
-			}
-			if (gch.box) {
-				if (xboxl > x)
-					xboxl = x;
-				w += x
-				if (xboxr < w)
-					xboxr = w
-				if (yboxl > y)
-					yboxl = y
-				if (yboxh < y + h)
-					yboxh = y + h;
-				box++
 			}
 			i = text.indexOf('\t')
 
@@ -516,22 +507,23 @@ function draw_gchord(s, gchy_min, gchy_max) {
 				}
 				var expdx = (x - s.x) / j;
 
-				x = s.x
+				x = s.x;
+				y /= staff_tb[s.st].staffscale
 				if (user.anno_start)
 					user.anno_start("gchord", gch.istart, gch.iend,
 						x - 2, y + h + 2, w + 4, h + 4, s)
 				i = 0;
-				j = i
+				j = i;
 				for (;;) {
 					i = text.indexOf('\t', j)
 					if (i < 0)
 						break
-					xy_str(x, y + h * 0.2,
+					xy_str(x, y + h * .2,
 							text.slice(j, i), 'c');
 					x += expdx;
 					j = i + 1
 				}
-				xy_str(x, y + h * 0.2, text.slice(j), 'c')
+				xy_str(x, y + h * .2, text.slice(j), 'c')
 				if (user.anno_stop)
 					user.anno_stop("gchord", gch.istart, gch.iend,
 						s.x - 2, y + h + 2, w + 4, h + 4, s)
@@ -540,26 +532,30 @@ function draw_gchord(s, gchy_min, gchy_max) {
 			break
 		case '@':			/* absolute */
 			y = gch.y + yav
-			if (y > 0)
-				y_set(s.st, 1, x, 1, y + h * 0.8 + 3)
-			else
-				y_set(s.st, 0, x, 1, y - h * 0.2)
+			if (y > 0) {
+				y2 = y + h * .8 + 3
+				if (y2 > staff_tb[s.st].ann_top)
+					staff_tb[s.st].ann_top = y2
+			} else {
+				y2 = y - h * .2
+				if (y2 < staff_tb[s.st].ann_bot)
+					staff_tb[s.st].ann_bot = y2
+			}
+//				y_set(s.st, 1, x, 1, y + h * .8 + 3)
+//			else
+//				y_set(s.st, 0, x, 1, y - h * .2)
 			break
 		}
+		y *= staff_tb[s.st].staffscale
 		if (user.anno_start)
 			user.anno_start("annot", gch.istart, gch.iend,
 				x - 2, y + h + 2, w + 4, h + 4, s)
-		xy_str(x, y + h * 0.2, text)		/* (descent) */
+		if (gch.box)
+			xy_str_b(x, y + h * .2, text)
+		else
+			xy_str(x, y + h * .2, text)		/* (descent) */
 		if (user.anno_stop)
 			user.anno_stop("annot", gch.istart, gch.iend,
 				x - 2, y + h + 2, w + 4, h + 4, s)
-	}
-
-	/* draw the box of the guitar chords */
-	if (xboxr != xboxl) {		/* if any normal guitar chord */
-		xboxl -= 2;
-		w = xboxr - xboxl;
-		h = yboxh - yboxl + 3;
-		xybox(xboxl, yboxl - 1 + h, w, h)
 	}
 }

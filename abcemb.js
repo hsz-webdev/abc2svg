@@ -1,20 +1,23 @@
 //#javascript
 // abcemb-1.js file to include in html pages with abc2svg-1.js
 //
-// Copyright (C) 2014-2016 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.");
 
 var	errtxt = '',
 	new_page = '',
-	abc
+	abc,
+	play,				// undefined: no play possible,
+					// 1: play possible,
+					// 2: playing
+	abcplay,
+	a_src = [],			// index: #sequence, value: ABC source
+	a_pe = []			// index: #sequence, value: playing events
 
 // -- abc2svg init argument
 var user = {
-	read_file: function(fn) {	// include a file (%%abc-include)
-		return readFile(fn)
-	},
 	errmsg: function(msg, l, c) {	// get the errors
 		errtxt += msg + '\n'
 	},
@@ -24,22 +27,60 @@ var user = {
 	page_format: true		// define the non-page-breakable blocks
 }
 
-function debug() {
-	var i, tmp ="debug:"
-	for (i = 0; i < arguments.length; i++)
-		tmp += " " + arguments[i];
-//	alert(tmp)
-	errtxt += tmp + '\n'
+function endplay() {
+	play = 1
+}
+
+// function called on rendering click
+function playseq(seq) {
+	if (typeof AbcPlay == "undefined")
+		return			// play-1.js not loaded
+	if (play == 2) {
+		abcplay.stop();
+		endplay()
+		return
+	}
+	play = 2
+	if (!a_pe[seq]) {		// if no playing event
+		if (!abcplay)
+			abcplay = new AbcPlay(endplay,
+//fixme: switch comment for test
+			"https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/")
+//				"./")
+		var abc = new Abc(user);
+
+		abcplay.clear();
+		abc.tosvg("play", "%%play")
+		try {
+			abc.tosvg("abcemb" + seq, a_src[seq])
+		} catch(e) {
+			alert(e.message + '\nabc2svg tosvg bug - stack:\n' + e.stack);
+			play = 1;
+			a_pe[seq] = null
+			return
+		}
+		a_pe[seq] = abcplay.clear()	// keep the playing events
+	}
+	abcplay.play(0, 100000, a_pe[seq])
 }
 
 // function called when the page is loaded
 function dom_loaded() {
-	var page = document.body.innerHTML
+	var page = document.body.innerHTML;
 
-	// search the ABC tunes and replace them by SVG images
-	var	i = 0, j, k, res,
+	user.get_abcmodel =
+		function(tsfirst, voice_tb, music_types, info) {
+			if (play == 2)
+				abcplay.add(tsfirst, voice_tb)
+		}
+
+	// search the ABC tunes,
+	// replace them by SVG images and
+	// generate the sounds
+	var	i = 0, j, k, res, src,
+		seq = 0,
 		re = /\n%abc|\nX:/g,
-		re_stop = /\n<|\n%.begin/g
+		re_stop = /\n<|\n%.begin/g;
 	abc = new Abc(user)
 	for (;;) {
 
@@ -48,11 +89,11 @@ function dom_loaded() {
 		if (!res)
 			break
 		j = re.lastIndex - res[0].length;
-		new_page += page.slice(i, j)
+		new_page += page.slice(i, j);
 
 		// get the end of the ABC sequence
 		// including the %%beginxxx/%%endxxx sequences
-		re_stop.lastIndex = j
+		re_stop.lastIndex = ++j
 		while (1) {
 			res = re_stop.exec(page)
 			if (!res || res[0] == "\n<")
@@ -66,26 +107,36 @@ function dom_loaded() {
 		if (!res || k < 0)
 			k = page.length
 		else
-			k = re_stop.lastIndex - 2
+			k = re_stop.lastIndex - 2;
+		src = page.slice(j, k)
+		if (play) {
+			new_page += '<div onclick="playseq(' +
+					a_src.length +
+					')">\n';
+			a_src.push(src)
+		}
 		try {
-			abc.tosvg('abcemb', page.slice(j + 1, k))
+			abc.tosvg('abcemb', src)
 		} catch (e) {
 			alert("abc2svg javascript error: " + e.message +
 				"\nStack:\n" + e.stack)
 		}
 		if (errtxt) {
-			i = page.indexOf("\n", j + 1);
+			i = page.indexOf("\n", j);
 			i = page.indexOf("\n", i + 1);
 			alert("Errors in\n" +
-				page.slice(j + 1, i) +
+				page.slice(j, i) +
 				"\n...\n\n" + errtxt);
 			errtxt = ""
 		}
+		if (play)
+			new_page += '</div>\n';
 		i = k
 		if (k >= page.length)
 			break
 		re.lastIndex = i
 	}
+	user.img_out = null		// stop SVG generation
 	try {
 		document.body.innerHTML = new_page + page.slice(i)
 	} catch (e) {
@@ -93,6 +144,10 @@ function dom_loaded() {
 			"\nStack:\n" + e.stack)
 	}
 }
+
+// if playing is possible, load the playing scripts
+if (window.AudioContext || window.webkitAudioContext)
+	play = 1			// play possible
 
 // wait for the page to be loaded
 document.addEventListener("DOMContentLoaded", dom_loaded, false)

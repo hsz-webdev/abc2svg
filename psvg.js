@@ -1,4 +1,4 @@
-// psvg - small PS to SVG convertor for abc2svg
+// psvg.js - small PS to SVG convertor for abc2svg
 
 var svgbuf = ''
 
@@ -28,8 +28,8 @@ systemdict/def{currentdict 2 index 2 index put pop pop}put\n\
 /known{exch begin where{currentdict eq}{false}if end}.bdef\n\
 /store{1 index where{3 1 roll put}{def}ifelse}.bdef\n\
 /not{{false}{true}ifelse}.bdef\n\
-/.logand{{{true}{false}ifelse}{pop false}ifelse}.bdef\n\
-/and/.logand .ldef % TODO numeric and\n\
+%/.logand{{{true}{false}ifelse}{pop false}ifelse}.bdef\n\
+%/and/.logand .ldef % TODO numeric and\n\
 /.logor{{pop true}{{true}{false}ifelse}ifelse}.bdef\n\
 /or/.logor .ldef % TODO numeric or\n\
 /ne{eq not}.bdef\n\
@@ -104,8 +104,8 @@ systemdict/def{currentdict 2 index 2 index put pop pop}put\n\
 \n\
 %% PostScript\n\
 \n\
-/.deg2rad{.pi 180 div mul}.bdef\n\
-/.rad2deg{180 .pi div mul}.bdef\n\
+%/.deg2rad{.pi 180 div mul}.bdef\n\
+%/.rad2deg{180 .pi div mul}.bdef\n\
 \n\
 %/clip{.clip}.bdef\n\
 %/rectclip{.clearRect}.bdef\n\
@@ -130,31 +130,31 @@ systemdict/def{currentdict 2 index 2 index put pop pop}put\n\
 %/currentflat{42}.bdef % TODO\n\
 %/setflat{pop}.bdef % TODO\n\
 \n\
-/showpage{}.bdef % TODO\n\
-/grestoreall{}.bdef % TODO\n\
-/readonly{}.bdef % TODO\n\
-/currentfile{(url?)}.bdef % TODO\n\
-/eexec{pop}.bdef % TODO\n\
-/findfont{}.bdef % TODO\n\
-/scalefont{pop}.bdef % TODO\n\
-/setfont{pop}.bdef % TODO C.font = N + \"pt \" + F.V;\n\
-/stopped{}.bdef % TODO\n\
-/loop{}.bdef % TODO !!!\n\
-/string{}.bdef % TODO\n\
-/cvi{}.bdef % TODO\n\
-/pathbbox{}.bdef % TODO\n\
-/urx{}.bdef % TODO\n\
-/ury{}.bdef % TODO\n\
-/llx{}.bdef % TODO\n\
-/lly{}.bdef % TODO\n\
-/pagewidth{}.bdef % TODO\n\
-/pageheight{}.bdef % TODO\n\
-/inwidth{}.bdef % TODO\n\
-/inheight{}.bdef % TODO\n\
-/usertime{}.bdef % TODO\n\
-/srand{}.bdef % TODO\n\
-false .strictBind\n\
+%/showpage{}.bdef % TODO\n\
+%/grestoreall{}.bdef % TODO\n\
+%/readonly{}.bdef % TODO\n\
+%/currentfile{(url?)}.bdef % TODO\n\
+%/eexec{pop}.bdef % TODO\n\
+%/findfont{}.bdef % TODO\n\
+%/scalefont{pop}.bdef % TODO\n\
+%/setfont{pop}.bdef % TODO C.font = N + \"pt \" + F.V;\n\
+%/stopped{}.bdef % TODO\n\
+%/loop{}.bdef % TODO !!!\n\
+%/string{}.bdef % TODO\n\
+%/cvi{}.bdef % TODO\n\
+%/pathbbox{}.bdef % TODO\n\
+%/urx{}.bdef % TODO\n\
+%/ury{}.bdef % TODO\n\
+%/llx{}.bdef % TODO\n\
+%/lly{}.bdef % TODO\n\
+%/pagewidth{}.bdef % TODO\n\
+%/pageheight{}.bdef % TODO\n\
+%/inwidth{}.bdef % TODO\n\
+%/inheight{}.bdef % TODO\n\
+%/usertime{}.bdef % TODO\n\
+%/srand{}.bdef % TODO\n\
 "
+//false .strictBind\n\
 
 // SVG functions - adapted from abcm2ps svg.c
 function Svg() {
@@ -182,7 +182,8 @@ function Svg() {
 	path
 
     function getorig() {
-	setg(1);
+//	setg(1);
+	setg(0);
 	return [gcur.xoffs - gcur.xorig, gcur.yoffs - gcur.yorig]
     }
     function defg1() {
@@ -217,19 +218,19 @@ function Svg() {
 		}
 		svgbuf += '"'
 	}
-	if (gcur.linewidth != 0.7)
-		svgbuf += ' stroke-width="' + gcur.linewidth.toFixed(2) + '"';
+//	if (gcur.linewidth != 0.7)
+//		svgbuf += ' stroke-width="' + gcur.linewidth.toFixed(2) + '"';
 	output_font(false)
 	if (gcur.rgb)
 		svgbuf += ' style="color:' + gcur.rgb + '"';
 	svgbuf += ">\n";
 	g = 1
     }
-    // update the graphic context before SVG output - called on glyph output
-    function g_upd() {
-	if (gchg || g == 2)
-		defg1()
-    }
+//    // update the graphic context before SVG output - called on glyph output
+//    function g_upd() {
+//	if (gchg || g == 2)
+//		defg1()
+//    }
     function objdup(obj) {
 //	if (!obj || typeof(obj) != 'object')
 //		return obj
@@ -553,10 +554,10 @@ function Svg() {
 	gcur.dash += '"'
     }
     function setlinewidth(w) {
-	if (w != gcur.linewidth) {
-		gcur.linewidth = w;
-		gchg = true
-	}
+//	if (w != gcur.linewidth) {
+		gcur.linewidth = w
+//		gchg = true
+//	}
     }
     function setorig(x, y) {
 	gcur.xorig = gcur.xoffs = x;
@@ -601,9 +602,10 @@ function Svg() {
 	gcur.cx = x + strw(s)
     }
     function stroke() {
-	path_end();
-	svgbuf += '" stroke="currentColor" fill="none"' +
-		gcur.dash + '/>\n'
+	path_end()
+	if (gcur.linewidth != 0.7)
+		svgbuf += '" stroke-width="' + gcur.linewidth.toFixed(2);
+	svgbuf += '" stroke="currentColor" fill="none"' + gcur.dash + '/>\n'
     }
     function translate(x, y) {
 	gcur.xoffs += x;
@@ -620,7 +622,7 @@ function Svg() {
 //	Svg.prototype.defg1 = defg1;
 	Svg.prototype.eofill = eofill;
 	Svg.prototype.fill = fill;
-	Svg.prototype.g_upd = g_upd;
+//	Svg.prototype.g_upd = g_upd;
 	Svg.prototype.getorig = getorig;
 	Svg.prototype.grestore = grestore;
 	Svg.prototype.gsave = gsave;
@@ -643,8 +645,9 @@ function Svg() {
 	Svg.prototype.strw = strw;
 	Svg.prototype.translate = translate;
 
-// abcm2ps functions
+// abcm2ps functions - see pstail.js
 this.arp = function(val, x, y) { abcobj.arpps(val, x, y) }
+this.ltr = function(val, x, y) { abcobj.ltrps(val, x, y) }
 this.xygl = function(x, y, gl) { abcobj.xyglps(x, y, gl) }
 this.xygls = function(str, x, y, gl) { abcobj.xyglsps(str, x, y, gl) }
 this.xyglv = function(val, x, y, gl) { abcobj.xyglvps(val, x, y, gl) }

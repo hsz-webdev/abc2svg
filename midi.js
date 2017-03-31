@@ -1,31 +1,60 @@
 //#javascript
-// Set the MIDI pitches in the music symbols
+// Set the MIDI pitches in the notes
 //
-// Copyright (C) 2015-2016 Jean-Francois Moine
+// Copyright (C) 2015-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
-// published by the Free Software Foundation.");
+// published by the Free Software Foundation.
+
+// Usage:
+//	// Define a get_abcmodel() callback function
+//	// This one is called by abc2svg after ABC parsing 
+//	user.get_abcmodel = my_midi_callback
+//
+//	// In this function
+//	function my_midi_callback(tsfirst, voice_tb, music_types, info) {
+//
+//		// Create a AbcMIDI instance
+//		var abcmidi = new AbcMIDI();
+//
+//		// and set the MIDI pitches
+//		abcmidi.add(tsfirst, voice_tb);
+//
+//		// The MIDI pitches are stored in the notes
+//		//	s.notes[i].midi
+//	}
 
 // AbcMIDI creation
 function AbcMIDI() {
 
-	// -- generation of the MIDI pitches --
-	this.add = function(s, k) {		// add MIDI pitches
-						//	s: starting symbol
-						//	k: starting key (first voice)
-		// constants from Abc
-		const	BAR = 0,
-			GRACE = 4,
-			KEY = 5,
-			NOTE = 8,
-			scale = [0, 2, 4, 5, 7, 9, 11]	// note to pitch
+	// constants from Abc
+	const	BAR = 0,
+		CLEF = 1,
+		GRACE = 4,
+		KEY = 5,
+		NOTE = 8
+
+	// add MIDI pitches
+	this.add = function(s,		// starting symbol
+			    voice_tb) {	// voice table
+
+		const	scale = [0, 2, 4, 5, 7, 9, 11]	// note to pitch
 
 		var	bmap = [],			// measure base map
 			map = [],			// current map - 10 octaves
-			i, n, pit, lrep,
-			rep_en_map = []
+			i, n, pit, lrep, g, v,
+			rep_en_map = [],
+			transp = []			// transposition per voice
 
-		function key_map(s) {			// define the note map
+		// re-initialize the map on bar
+		function bar_map() {
+			for (var j = 0; j < 10; j++)
+				for (var i = 0; i < 7; i++)
+					map[j * 7 + i] = bmap[i]
+		} // bar_map()
+
+		// define the note map
+		function key_map(s) {
 			for (var i = 0; i < 7; i++)
 				bmap[i] = 0
 			switch (s.k_sf) {
@@ -45,24 +74,22 @@ function AbcMIDI() {
 			case -1: bmap[6] = -1; break
 			}
 			bar_map()
-		}
+		} // key_map()
 
-		function bar_map() {			// re-initialize the map on bar
-			for (var j = 0; j < 10; j++)
-				for (var i = 0; i < 7; i++)
-					map[j * 7 + i] = bmap[i]
-		}
-
-		function pit2midi(s, i) {		// convert ABC pitch to MIDI
+		// convert ABC pitch to MIDI
+		function pit2midi(s, i) {
 			var	p = s.notes[i].apit + 19,	// pitch from lowest C
 				a = s.notes[i].acc
 
 			if (a)
-				map[p] = a == 3 ? 0 : a;	// (3 = '=')
+				map[p] = a == 3 ? 0 : a	// (3 = '=')
+			if (transp[s.v])
+				p += transp[s.v]
 			return Math.floor(p / 7) * 12 + scale[p % 7] + map[p]
-		}
+		} // pit2midi()
 
-		function do_tie(s, i) {			// handle the ties
+		// handle the ties
+		function do_tie(s, i) {
 			var	j, n, s2, note2, pit, str_tie,
 				note = s.notes[i],
 				tie = note.ti1,
@@ -87,9 +114,18 @@ function AbcMIDI() {
 					break
 				}
 			}
-		}
+		} // do_tie()
 
-		key_map(k);			// init acc. map from key sig.
+		// initialize the clefs and keys
+		for (v = 0; v < voice_tb.length; v++) {
+			n = voice_tb[v].clef
+			if (!n.clef_octave
+			 || n.clef_oct_transp)
+				transp[v] = 0
+			else
+				transp[v] = n.clef_octave
+		}
+		key_map(voice_tb[0].key);	// init acc. map from key sig.
 		lrep = false
 
 		while (s) {
@@ -121,8 +157,27 @@ function AbcMIDI() {
 
 				bar_map()
 				break
-//			case GRACE:
-//				break
+			case CLEF:
+				if (!s.clef_octave
+				 || s.clef_oct_transp) {
+					transp[s.v] = 0
+					break
+				}
+				transp[s.v] = s.clef_octave
+				break
+			case GRACE:
+				for (g = s.extra; g; g = g.next) {
+					if (!g.type != NOTE)
+						continue
+					for (i = 0; i <= g.nhd; i++) {
+						if (g.notes[i].midi != undefined)
+							continue
+						pit = g.notes[i].apit;
+						str_tie = '_' + g.st + pit;
+						g.notes[i].midi = pit2midi(g, i)
+					}
+				}
+				break
 			case KEY:
 //fixme: handle different keys per staff
 				if (s.st != 0)

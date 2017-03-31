@@ -1,130 +1,354 @@
-//#javascript
-// play-1.js file to include in html pages with abc2svg-1.js for playing
+// play-1.js - file to include in html pages with abc2svg-1.js for playing
 //
-// Copyright (C) 2015-2016 Jean-Francois Moine
+// Copyright (C) 2015-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.
 
 // AbcPlay creation
-function AbcPlay(i_onend) {
+function AbcPlay(i_onend, i_instr_dir) {
+
+	// constants from Abc
+	const	BAR = 0,
+		CLEF = 1,
+		GRACE = 4,
+		KEY = 5,
+		NOTE = 8,
+		TEMPO = 14,
+		BASE_LEN = 1536,
+
+		instr_tb = [
+			"acoustic_grand_piano",
+			"bright_acoustic_piano",
+			"electric_grand_piano",
+			"honky-tonk_piano",
+			"electric_piano_1",
+			"electric_piano_2",
+			"harpsichord",
+			"clavinet",
+			"celesta",
+			"glockenspiel",
+			"music_box",
+			"vibraphone",
+			"marimba",
+			"xylophone",
+			"tubular_bells",
+			"dulcimer",
+			"drawbar_organ",
+			"percussive_organ",
+			"rock_organ",
+			"church_organ",
+			"reed_organ",
+			"accordion",
+			"harmonica",
+			"tango_accordion",
+			"acoustic_guitar_nylon",
+			"acoustic_guitar_steel",
+			"electric_guitar_jazz",
+			"electric_guitar_clean",
+			"electric_guitar_muted",
+			"overdriven_guitar",
+			"distortion_guitar",
+			"guitar_harmonics",
+			"acoustic_bass",
+			"electric_bass_finger",
+			"electric_bass_pick",
+			"fretless_bass",
+			"slap_bass_1",
+			"slap_bass_2",
+			"synth_bass_1",
+			"synth_bass_2",
+			"violin",
+			"viola",
+			"cello",
+			"contrabass",
+			"tremolo_strings",
+			"pizzicato_strings",
+			"orchestral_harp",
+			"timpani",
+			"string_ensemble_1",
+			"string_ensemble_2",
+			"synth_strings_1",
+			"synth_strings_2",
+			"choir_aahs",
+			"voice_oohs",
+			"synth_choir",
+			"orchestra_hit",
+			"trumpet",
+			"trombone",
+			"tuba",
+			"muted_trumpet",
+			"french_horn",
+			"brass_section",
+			"synth_brass_1",
+			"synth_brass_2",
+			"soprano_sax",
+			"alto_sax",
+			"tenor_sax",
+			"baritone_sax",
+			"oboe",
+			"english_horn",
+			"bassoon",
+			"clarinet",
+			"piccolo",
+			"flute",
+			"recorder",
+			"pan_flute",
+			"blown_bottle",
+			"shakuhachi",
+			"whistle",
+			"ocarina",
+			"lead_1_square",
+			"lead_2_sawtooth",
+			"lead_3_calliope",
+			"lead_4_chiff",
+			"lead_5_charang",
+			"lead_6_voice",
+			"lead_7_fifths",
+			"lead_8_bass__lead",
+			"pad_1_new_age",
+			"pad_2_warm",
+			"pad_3_polysynth",
+			"pad_4_choir",
+			"pad_5_bowed",
+			"pad_6_metallic",
+			"pad_7_halo",
+			"pad_8_sweep",
+			"fx_1_rain",
+			"fx_2_soundtrack",
+			"fx_3_crystal",
+			"fx_4_atmosphere",
+			"fx_5_brightness",
+			"fx_6_goblins",
+			"fx_7_echoes",
+			"fx_8_sci-fi",
+			"sitar",
+			"banjo",
+			"shamisen",
+			"koto",
+			"kalimba",
+			"bagpipe",
+			"fiddle",
+			"shanai",
+			"tinkle_bell",
+			"agogo",
+			"steel_drums",
+			"woodblock",
+			"taiko_drum",
+			"melodic_tom",
+			"synth_drum",
+			"reverse_cymbal",
+			"guitar_fret_noise",
+			"breath_noise",
+			"seashore",
+			"bird_tweet",
+			"telephone_ring",
+			"helicopter",
+			"applause",
+			"gunshot"],
+
+		scale = [0, 2, 4, 5, 7, 9, 11],	// note to pitch
+
+		// note to name and note to octave
+		nn =	["C", "Db", "D",  "Eb", "E",  "F",
+			 "Gb", "G", "Ab", "A",  "Bb", "B"],
+		no = "012345678"
 
 	// -- global --
 	var	onend = i_onend,	// callback function on play end
 		ac,			// audio context
 		gain,			// global gain
+		gain_val = 0.7,
 		a_e,			// event array
-		o_vol = 0.2		// oscillator volume(s)
+
+	// instruments/notes
+		instr_dir = i_instr_dir, // instrument base URL
+		sounds = [],		// [instr][mi] decoded notes per instrument
+		w_instr = 0,		// number of instruments being loaded
+		note_q = [],		// [instr, note] to be decoded
+		w_note = 0,		// number of notes being decoded
+		nn2mi = [],		// note name to MIDI index
+		geval = eval,
 
 	// -- play the memorized events --
-	var	evt_idx,		// event index while playing
+		evt_idx,		// event index while playing
 		iend,			// source stop index
-		ctime,			// current playing time
-		a_g = []		// pool of free gains for oscillators
+		stime			// start playing time
 
-	function o_end(o, g) {		// oscillator end playing
-		a_g.push(g);		// move the gain to the pool
-		o.disconnect()
-	}
+	// build the table 'note name to MIDI index'
+	function key2mid() {
+		var	n, o,
+			mi = 0
 
-	function play_next() {			// play the next time sequence
-		var	t, ct, e, e2
-
-		function play_note(f, d) { // play a note (freq, duration in seconds)
-			var	o = ac.createOscillator(),
-				g = a_g.pop()
-
-			if (!g) {
-				g = ac.createGain();
-				g.gain.value = o_vol;
-//				g.gain.value = 0.2;
-				g.connect(gain)
-			}
-
-			o.frequency.value = f;
-			o.type = "sine";
-//			o.type = "triangle";
-			o.onended = function() { o_end(o, g) }
-//fixme
-if (d > 0.8)
- d -= 0.07
-else
- d *= 0.9
-			o.start(ctime);
-			o.stop(ctime + d);
-			o.connect(g)
+		for (o = 0; o < 9; o++) {
+			for (n = 0; n < 12; n++)
+				nn2mi[nn[n] + no[o]] = mi++
 		}
+	} // key2mid()
+
+	// sound end playing
+	function o_end(s) {
+		s.disconnect()
+//fixme: is this needed??
+		delete s
+	} // o_end()
+
+	function decode_note(instr, mi) {
+		var snd, p
+
+		// convert data URI to binary
+		function data2bin(dataURI) {
+			var	base64Index = dataURI.indexOf(',') + 1,
+				base64 = dataURI.substring(base64Index),
+				raw = window.atob(base64),
+				rawLength = raw.length,
+				ab = new ArrayBuffer(rawLength),
+				array = new Uint8Array(ab)
+
+			for (i = 0; i < rawLength; i++)
+				array[i] = raw.charCodeAt(i)
+			return ab
+		} // data2bin()
+
+		w_note++;
+		p = nn[mi % 12] + no[(mi / 12) | 0];
+		snd = data2bin(MIDI.Soundfont[instr_tb[instr]][p]);
+		ac.decodeAudioData(snd,
+				function(b) {
+					sounds[instr][mi] = b;
+					w_note--
+				},
+				function(e) {
+					alert("Decod audio data err " +
+						e.err)
+				})
+	} // decode_note()
+
+	// load an instrument
+	function load_instr(instr) {
+		var req, url, script;
+
+		w_instr++;
+
+		url = instr_dir + instr_tb[instr] + '-ogg.js';
+		script = document.createElement('script');
+		script.src = url;
+		script.onload = function() {
+			w_instr--
+		}
+		document.head.appendChild(script)
+	} // load_instr()
+
+	// play the next time sequence
+	function play_next() {
+		var	t, e, e2, maxt, o
 
 		// play the next events
-		e = a_e[evt_idx++]
+		e = a_e[evt_idx]
 		if (!e
 		 || e[0] > iend) {		// if source ref > source end
-			if (onend)
+			if (onend)		// play end
 				onend()
 			return
 		}
-		ct = e[1]			// time to play
-		while (1) {
-			play_note(e[2], e[3])	// freq, duration
-			e2 = a_e[evt_idx]
-			if (!e2) {
-				t = ct + e[3]	// duration
-				break
-			}
-			e = e2;
-			t = e[1]		// time
-			if (t != ct)
-				break		// next time
-			evt_idx++
+//fixme: better count the number of events?
+		maxt = e[1] + 4			// max time = evt time + 4 seconds
+		do {
+			o = ac.createBufferSource();
+			o.buffer = sounds[e[2]][e[3]];
+			o.onended = function() { o_end(s) }
+			o.connect(gain);
+			o.start(e[1] + stime, 0, e[4]);
+
+			t = e[1];		// event time
+			e = a_e[++evt_idx]
+		} while (e && e[1] <= maxt)
+
+		setTimeout(play_next, (t + stime - ac.currentTime)
+				* 1000 - 200)	// wake before end of playing
+	} // play_next()
+
+	// wait for all resources, then start playing
+	function play_start() {
+		var e
+
+		if (iend == 0)		// play stop
+			return
+		if (w_instr != 0) {
+			setTimeout(function() {	// wait for all instruments
+				play_start()
+			}, 300)
+			return
 		}
-		ctime += t - ct;
-		setTimeout(play_next, (ctime - ac.currentTime) * 1000 - 100)
+		if (note_q.length != 0) {
+			while (1) {
+				e = note_q.shift()
+				if (!e)
+					break
+				decode_note(e[0], e[1])
+			}
+		}
+		if (w_note != 0) {
+			setTimeout(function() {	// wait for all notes
+				play_start()
+			}, 300)
+			return
+		}
+
+		// all resources are there
+		stime = ac.currentTime + .2;		// start time + 0.2s
+		play_next()
 	}
 
-	this.play = function(istart, i_iend) {	// play the events
-		if (!a_e)
-			return			// no error? - ugly!
+	// play the events
+	this.play = function(istart, i_iend, a_pe) {
+		if (a_pe)			// force old playing events
+			a_e = a_pe
+		if (!a_e || !a_e.length) {
+			if (onend)		// nothing to play
+				onend()
+			return
+		}
 		iend = i_iend;
 		evt_idx = 0
 		while (a_e[evt_idx] && a_e[evt_idx][0] < istart)
 			evt_idx++
-		if (a_e[evt_idx])
-			ctime = ac.currentTime + a_e[evt_idx][1];
-		play_next()
-	}
-	this.stop = function() {		// stop playing
+		if (!a_e[evt_idx]) {		// nothing to play
+			if (onend)
+				onend()
+			return
+		}
+		play_start()
+	} // play()
+
+	// stop playing
+	this.stop = function() {
 		iend = 0
-	}
-	this.set_g_vol = function(v) {		// set global volume
-		gain.gain.value = v
-	}
-	this.set_o_vol = function(v) {		// set oscillator volume
-		o_vol = v
-		for (var i = 0; i < a_g.length; i++)
-			a_g[i].gain.value = v
-	}
+	} // stop()
+
+	// set global volume
+	this.set_g_vol = function(v) {
+		if (gain)
+			gain.gain.value = v
+		else
+			gain_val = v
+	} // set_g_vol()
 
 	// -- generation of the playing events --
 	var	p_time,				// last playing time
 		abc_time,			// last ABC time
 		play_factor			// play time factor
 
-	this.clear = function() {		// clear all playing events
+	// clear the playing events and return the old ones
+	this.clear = function() {
+		var a_pe = a_e;
 		a_e = null
-	}
+		return a_pe
+	} // this.clear()
 
-	this.add = function(s, k) {		// add playing events from the schema
-						//	s: starting symbol
-						//	k: starting key (first voice)
-		// constants from Abc
-		const	BAR = 0,
-			GRACE = 4,
-			KEY = 5,
-			NOTE = 8,
-			TEMPO = 14,
-			BASE_LEN = 1536,
-			scale = [0, 2, 4, 5, 7, 9, 11]	// note to pitch
-
+	// add playing events from the schema
+	this.add = function(s,			// starting symbol
+			    voice_tb) {		// voice table
 		var	bmap = [],		// measure base map
 			map = [],		// current map - 10 octaves
 			i, n, dt, d, g,
@@ -132,9 +356,38 @@ else
 			rep_st_t,		// and time
 			rep_en_i,		// repeat stop index
 			rep_en_t,		// and time
-			rep_en_map = []		// and accidentals
+			rep_en_map = [],	// and accidentals
+			transp = []		// clef transposition per voice
 
-		function key_map(s) {			// define the note map
+		// set the transpositions and load the instruments
+		function set_voices() {
+			var v, s, instr
+
+			for (v = 0; v < voice_tb.length; v++) {
+				s = voice_tb[v].clef
+				if (!s.clef_octave
+				 || s.clef_oct_transp)
+					transp[v] = 0
+				else
+					transp[v] = s.clef_octave;
+
+				instr = voice_tb[v].instr
+				if (sounds[instr])
+					continue // already loading/loaded
+				sounds[instr] = [];
+				load_instr(instr)
+			}
+		} // set_voices()
+
+		// re-initialize the map on bar
+		function bar_map() {
+			for (var j = 0; j < 10; j++)
+				for (var i = 0; i < 7; i++)
+					map[j * 7 + i] = bmap[i]
+		} // bar_map()
+
+		// define the note map
+		function key_map(s) {
 			for (var i = 0; i < 7; i++)
 				bmap[i] = 0
 			switch (s.k_sf) {
@@ -154,23 +407,36 @@ else
 			case -1: bmap[6] = -1; break
 			}
 			bar_map()
-		} // key_map
+		} // key_map()
 
-		function bar_map() {			// re-initialize the map on bar
-			for (var j = 0; j < 10; j++)
-				for (var i = 0; i < 7; i++)
-					map[j * 7 + i] = bmap[i]
-		} // bar_map
-
-		function pit2f(s, i) {			// convert ABC pitch to frequency
-			var	p = s.notes[i].apit + 19,	// pitch from lowest C
+		// convert ABC pitch to MIDI index
+		function pit2mid(s, i) {
+			var	n, oct, mi,
+				instr = s.p_v.instr,
+				p = s.notes[i].pit + 12, // pitch from C1(?)
 				a = s.notes[i].acc
 
+			if (transp[s.v])
+				p += transp[s.v]
 			if (a)
-				map[p] = a == 3 ? 0 : a;	// (3 = '=')
-			p = Math.floor(p / 7) * 12 + scale[p % 7] + map[p]
-			return 440 * Math.pow(2, (p - 69) / 12)
-		} // pit2f
+				map[p] = a == 3 ? 0 : a; // (3 = natural)
+			oct = (p / 7) | 0;
+			p = scale[p % 7] + map[p]
+			if (p > 12) {
+				p -= 12;
+				oct++
+			} else if (p < 0) {
+				p += 12;
+				oct--
+			}
+			p = nn[p] + no[oct];
+			mi = nn2mi[p]
+			if (!sounds[instr][mi]) {	// if no note yet
+				sounds[instr][mi] = true;
+				note_q.push([instr, mi])
+			}
+			return mi
+		} // pit2mid()
 
 		function play_dup(s) {
 			var i, n, en_t, dt, e;
@@ -178,20 +444,21 @@ else
 			dt = p_time - rep_st_t
 			for (i = rep_st_i; i < rep_en_i; i++) {
 				e = a_e[i];
-				a_e.push([e[0],
-					e[1] + dt,
-					e[2],
-					e[3]])
+				a_e.push([e[0],		// source index
+					e[1] + dt,	// time
+					e[2],		// instrument
+					e[3],		// MIDI note
+					e[4]])		// duration
 			}
-		} // play_dup
+		} // play_dup()
 
-		function do_tie(s, i, d) {			// handle the ties
-			var	j, n, s2, pit,
+		// handle the ties
+		function do_tie(s, i, d) {
+			var	j, n, s2, pit, end_time,
 				note = s.notes[i],
-				tie = note.ti1,
-				end_time
+				tie = note.ti1;
 
-			pit = note.apit;			// absolute pitch
+			pit = note.pit;
 			end_time = s.time + s.dur
 			for (s2 = s.next; ; s2 = s2.next) {
 				if (!s2
@@ -203,27 +470,88 @@ else
 			n = s2.notes.length
 			for (j = 0; j < n; j++) {
 				note = s2.notes[j]
-				if (note.apit == pit) {
+				if (note.pit == pit) {
 					d += s2.dur / play_factor;
 					note.ti2 = true;
 					return note.ti1 ? do_tie(s2, j, d) : d
 				}
 			}
 			return d
-		} // do_tie
+		} // do_tie()
 
-		// add playing events
-		key_map(k)				// init acc. map from key sig.
+		// generate the grace notes
+		function gen_grace(s) {
+			var	g, i, n, t,
+				d = BASE_LEN / 16,
+				next = s.next
 
-		if (!a_e) {				// first call
+			if (next.type != NOTE) {
+				// fixme: to do later
+				for (g = s.extra; g; g = g.next) {
+					if (g.type != NOTE)
+						continue
+					for (i = 0; i <= g.nhd; i++)
+						pit2mid(g, i)
+				}
+				return
+			}
+			if (next.dur > BASE_LEN / 4)
+				d *= 2
+			else if (next.dur < BASE_LEN / 8)
+				d = next.dur / 2;
+			n = 0
+			for (g = s.extra; g; g = g.next)
+				if (g.type == NOTE)
+					n++;
+			next.time += d;
+			next.dur -= d;
+			d /= n * play_factor;
+			t = p_time
+			for (g = s.extra; g; g = g.next) {
+				if (g.type != NOTE)
+					continue
+				gen_notes(g, t, d);
+				t += d
+			}
+		} // gen_grace()
+
+		// generate the notes
+		function gen_notes(s, t, d) {
+			for (var i = 0; i <= s.nhd; i++) {
+				if (s.notes[i].ti2) {
+//					s.notes[i].ti2 = false
+					continue
+				}
+				a_e.push([s.istart,
+					t,
+					s.p_v.instr,
+					pit2mid(s, i),
+					s.notes[i].ti1 ? do_tie(s, i, d) : d])
+			}
+		} // gen_note()
+
+		// -- this.add() --
+		if (!ac) {
+			ac = new (window.AudioContext || window.webkitAudioContext);
+			gain = ac.createGain();
+			gain.gain.value = gain_val;
+			gain.connect(ac.destination)
+		}
+
+		set_voices();			// initialize the voice parameters
+		key_map(voice_tb[0].key)	// init accidental map from key sig.
+
+		if (!a_e) {			// if first call
 			a_e = []
-			abc_time = rep_st_t = 0;
-			p_time = 0;
-			rep_st_i = rep_en_i = 0;
+			abc_time = rep_st_t =
+				p_time =
+					rep_st_i = rep_en_i = 0;
 			play_factor = BASE_LEN / 4 * 80 / 60	// default: Q:1/4=80
 		} else if (s.time < abc_time) {
-			abc_time = rep_st_t = s.time;
+			abc_time = rep_st_t = s.time
 		}
+
+		// loop on the symbols
 		while (s) {
 			for (g = s.extra; g; g = g.next) {
 				if (g.type == TEMPO
@@ -245,9 +573,23 @@ else
 			switch (s.type) {
 			case BAR:
 //fixme: handle different keys per staff
-				if (s.st != 0)
+//				if (s.st != 0)
+				if (s.v != 0)
 					break
 //fixme: handle the ties on repeat
+				// right repeat
+				if (s.bar_type[0] == ':') {
+					if (rep_en_i == 0) {
+						rep_en_i = a_e.length;
+						rep_en_t = p_time
+					} else {
+						for (i = 0; i < 7; i++)
+							bmap[i] = rep_en_map[i]
+					}
+					play_dup(s);
+					p_time += rep_en_t - rep_st_t
+				}
+
 				// left repeat
 				if (s.bar_type[s.bar_type.length - 1] == ':') {
 					rep_st_i = a_e.length;
@@ -263,24 +605,21 @@ else
 					for (i = 0; i < 7; i++)
 						rep_en_map[i] = bmap[i]
 					break
-
-				// right repeat
-				} else if (s.bar_type[0] == ':') {
-					if (rep_en_i == 0) {
-						rep_en_i = a_e.length;
-						rep_en_t = p_time
-					} else {
-						for (i = 0; i < 7; i++)
-							bmap[i] = rep_en_map[i]
-					}
-					play_dup(s)
-					p_time += rep_en_t - rep_st_t
 				}
 
 				bar_map()
 				break
-//			case GRACE:
-//				break
+			case CLEF:
+				if (!s.clef_octave
+				 || s.clef_oct_transp) {
+					transp[s.v] = 0
+					break
+				}
+				transp[s.v] = s.clef_octave
+				break
+			case GRACE:
+				gen_grace(s)
+				break
 			case KEY:
 //fixme: handle different keys per staff
 				if (s.st != 0)
@@ -288,41 +627,14 @@ else
 				key_map(s)
 				break
 			case NOTE:
-				d = s.dur / play_factor
-				for (i = 0; i <= s.nhd; i++) {
-					if (s.notes[i].ti2) {
-						s.notes[i].ti2 = false
-						continue
-					}
-					a_e.push([s.istart,
-						p_time,
-						pit2f(s, i),
-						s.notes[i].ti1 ? do_tie(s, i, d) : d])
-				}
+				gen_notes(s, p_time, s.dur / play_factor)
 				break
 			}
 			s = s.ts_next
 		}
-	}
+	} // this.add()
 
 	// AbcPlay object creation
-	if (window.AudioContext)
-		ac = new window.AudioContext
-	else if (window.webkitAudioContext)
-		ac = new window.webkitAudioContext
-	else
-		return {}
-
-	// create the global gain
-	gain = ac.createGain();
-	gain.gain.value = 0.7
-  if (1) {
-	gain.connect(ac.destination)
-  } else {
-	comp = ac.createDynamicsCompressor();
-	comp.ratio = 16;
-	comp.attack = 0.0005;
-	comp.connect(ac.destination);
-	gain.connect(comp)
-  }
+	sounds[0] = [];			// default: acoustic grand piano
+	key2mid()
 } // end AbcPlay
