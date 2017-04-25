@@ -318,27 +318,34 @@ function tosvg(in_fname,		// file name
 	function set_boc() {
 		boc = bol
 		while (boc < eol) {
-			c = file[boc]
-			if (c != ' ' &&  c != '\t')
-				break
-			boc++
+			switch (file[boc]) {
+			case ' ':
+			case '\t':
+				boc++
+				continue
+			}
+			break
 		}
 	} // set_boc()
 
 	function set_eoc() {
 		eoc = eol - 1
 		while (eoc > bol) {
-			c = file[eoc]
-			if (c != ' ' && c != '\t')
-				break
-			eoc--
+			switch (file[boc]) {
+			case ' ':
+			case '\t':
+				eoc--
+				continue
+			}
+			break
 		}
 		eoc++
 	} // set_eoc()
 
 	// check if a tune is selected
 	function tune_selected() {
-		var	i = file.indexOf('K:', bol)
+		var	re,
+			i = file.indexOf('K:', bol)
 
 		if (i < 0) {
 //			syntax(1, "No K: in tune")
@@ -347,11 +354,13 @@ function tosvg(in_fname,		// file name
 		i = file.indexOf('\n', i)
 		if (parse.select.test(file.slice(bol, i)))
 			return true
-		eol = file.indexOf('\n\n', i)
-		if (eol < 0)
-			eol = eof - 1
+		re = /\n\w*\n/;
+		re.lastIndex = i;
+		res = re.exec(file)
+		if (res)
+			eol = re.lastIndex
 		else
-			eol++
+			eol = eof
 		return false
 	} // tune_selected()
 
@@ -389,10 +398,12 @@ function tosvg(in_fname,		// file name
 		}
 		src = src.replace(/\s+$/,'');		// trimRight
 		return src.replace(/\\%/g,'%')
-	} // uncomment
+	} // uncomment()
 
 	function end_tune() {
-		gen_ly(false);
+		generate()
+		if (info.W)
+			put_words(info.W);
 		put_history();
 		blk_out();
 		blk_flush();
@@ -419,14 +430,28 @@ function tosvg(in_fname,		// file name
 
 	// scan the file
 	bol = 0
-	for (bol = 0; ; bol = eol + 1) {
-		if (bol >= eof)
-			break
-
-		// get a line
-		eol = file.indexOf('\n', bol)
+	for (bol = 0; bol < eof; bol = eol + 1) {
+		eol = file.indexOf('\n', bol)	// get a line
 		if (eol < 0)
 			eol = eof
+		switch (file[bol]) {		// check if only white spaces
+		case ' ':
+		case '\t':
+			for (i = bol + 1; i < eol; i++) {
+				switch (file[i]) {
+				case ' ':
+				case '\t':
+					continue
+				case '%':
+					bol = i
+					break
+				}
+				break
+			}
+			if (i >= eol)
+				bol = eol
+			break
+		}
 		if (eol == bol) {		// empty line
 			if (parse.state == 1) {
 				parse.istart = bol;
@@ -475,6 +500,7 @@ function tosvg(in_fname,		// file name
 				a.shift()
 			switch (a[0]) {
 			case "abcm2ps":
+			case "ss-pref":
 				parse.prefix = a[1]
 				continue
 			case "abc-include":
@@ -603,7 +629,6 @@ function tosvg(in_fname,		// file name
 		// information fields
 		text = uncomment(file.slice(bol + 2, eol).trim(),
 				 true)
-//		if (line0 == '+' && line1 == ':') {
 		if (line0 == '+') {
 			if (!last_info) {
 				syntax(1, "+: without previous info field")

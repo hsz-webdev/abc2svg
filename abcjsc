@@ -1,8 +1,8 @@
 #!/bin/sh
-# abc2svg with jsc-3 (webkitgtk-3)
+# abc2svg with jsc-1 (webkitgtk2)
 progdir=`dirname $0`
 
-exec jsc-3 -e "var progdir='${progdir}/'
+exec jsc-1 -e "var progdir='${progdir}/'
 
 // function to do utf-8 work...
 // uncommenting this function asks for also uncommenting its call in cmdline.js
@@ -29,10 +29,10 @@ function main(args) {
 		load(args[0])
 		args.shift()
 	} else {
-		load('progdir + 'toxhtml.js')
+		load(progdir + 'toxhtml.js')
 	}
 	if (!args[0]) {
-		print('ABC translator with jsc-3 (webkit-3)\
+		print('ABC translator with jsc-1 (webkitgtk2)\
  and abc2svg-' + abc2svg.version + ' ' + abc2svg.vdate + '\n\
 Usage:\n\
   abcjsc [script.js] [g_options] ABC_file [f_options] [ABC_file [f_options]]*\n\

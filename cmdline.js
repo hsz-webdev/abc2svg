@@ -70,7 +70,7 @@ function abc_cmd(cmd, args) {
 	var arg, param, fname;
 
 	abc = new Abc(user);
-	abc_init(abc)
+	abc_init()
 	while (1) {
 		arg = args.shift()
 		if (!arg)
@@ -78,7 +78,7 @@ function abc_cmd(cmd, args) {
 		if (arg[0] == "-") {
 			if (arg[1] == "-") {
 				param = args.shift();
-				abc.tosvg(cmd, arg.replace('--', '%%') +
+				abc.tosvg(cmd, arg.replace('--', 'I:') +
 						" " + param + "\n")
 			}
 		} else {
@@ -92,5 +92,5 @@ function abc_cmd(cmd, args) {
 	if (fname)
 		do_file(fname);
 
-	abc_end(abc)
+	abc_end()
 }

@@ -1,3 +1,65 @@
+---- Version 1.12.5 - 2017-04-21 ----
+
+. fixes
+	Set the left and right margins to 0 for printing (edit.css)
+	Handle lines with only white spaces as ends of tune
+. changes
+	Use 'edit-1.css' for printing with the ABC bookmarklet
+
+---- Version 1.12.4 - 2017-04-19 ----
+
+. fixes
+	Increase SVG image height for lyrics
+		(reported by Manavasu)
+	Put the grace notes closer to measure bars
+	Syntax error in abcjsc
+. changes
+	Use jsc-1 instead of jsc-3 in abcjsc
+
+---- Version 1.12.3 - 2017-04-09 ----
+
+. fixes
+	Bad playing tempo when Q: and "%%writefields Q 0"
+		(reported by Gerhard Schacherl)
+. changes
+	Set the page top margin to 1cm (for print, in toxhtml.js
+			and in the editor)
+
+---- Version 1.12.2 - 2017-04-06 ----
+
+. fixes
+	Crash when %%score without declared voice
+. changes
+	Convert command line '--' to 'I:' instead of '%%'
+
+---- Version 1.12.1 - 2017-04-04 ----
+
+. fixes
+	Loop when %%transpose in %%voice
+	Set the same scale to the notes in the tempo indications
+	Don't generate empty values in the 'music_type_ids' object (json.js)
+		(reported by Bernhard Weichel)
+	Loss of stem direction of grace notes since 1.12.0
+		(reported by David Lacroix)
+	Clash of tuplet bracket and stems in lower voices since 1.11.2
+		(reported by David Lacroix)
+. internal changes
+	Put the tempo (Q:) as the very first symbol of the top voice
+
+---- Version 1.12.0 - 2017-04-01 ----
+
+. fixes
+	Bad color of the tuplet numbers when over the brackets
+	Better slope of grace note beams
+	Bad key signature when K:none and %%transpose since 1.11.0
+		(reported by David Lacroix)
+	Bad vertical offset of n-plet brackets of lower voices since 1.11.2
+. new features
+	Add %%ss-pref (stylesheet prefix) as a replacement of %%abcm2ps
+. internal changes
+	Keep the 'extra' list for the grace notes only
+	Different definition of the tuplets
+
 ---- Version 1.11.2 - 2017-03-27 ----
 
 . fixes

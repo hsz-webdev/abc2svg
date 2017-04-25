@@ -192,8 +192,9 @@ var glyphs = {
 //		-.2 -.8 -.7 -.7 -2.1 .4z"/>\n\
 //</pattern>',
   clearbg: '<filter id="clearbg">\n\
-	<feFlood flood-color="white"/>\n\
-	<feComposite in="SourceGraphic"/>\n\
+	<feComposite in="SourceGraphic" result="comp"/>\n\
+	<feFlood flood-color="white" result="flood"/>\n\
+	<feMerge><feMergeNode in="flood"/><feMergeNode in="comp"/></feMerge>\n\
 </filter>'
 }
 
@@ -387,10 +388,10 @@ function delayed_update() {
 
 // output the annotations
 // !! tied to the symbol types in abc2svg.js !!
-const anno_type = ['bar', 'clef', 'custos', 'format', 'grace',
+const anno_type = ['bar', 'clef', 'custos', '', 'grace',
 		'key', 'meter', 'Zrest', 'note', 'part',
 		'rest', 'yspace', 'staves', 'Break', 'tempo',
-		'tuplet', 'block', 'remark']
+		'', 'block', 'remark']
 
 function anno_out(s, t, f) {
 	if (s.istart == undefined)

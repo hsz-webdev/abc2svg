@@ -208,7 +208,7 @@ function calculate_beam(bm, s1) {
 	b = (sy - a * sx) / notes
 
 	/* the next few lines modify the slope of the beam */
-	if (!s1.grace) {
+//	if (!s1.grace) {
 		if (notes >= 3) {
 			hh = syy - a * sxy - b * sy /* flatten if notes not in line */
 			if (hh > 0
@@ -218,13 +218,13 @@ function calculate_beam(bm, s1) {
 		if (a >= 0)
 			a = BEAM_SLOPE * a / (BEAM_SLOPE + a)	/* max steepness for beam */
 		else
-			a = BEAM_SLOPE * a / (BEAM_SLOPE - a)
-	} else {
-		if (a > BEAM_SLOPE)
-			a = BEAM_SLOPE
-		else if (a < -BEAM_SLOPE)
-			a = -BEAM_SLOPE
-	}
+			a = BEAM_SLOPE * a / (BEAM_SLOPE - a);
+//	} else {
+//		if (a > BEAM_SLOPE)
+//			a = BEAM_SLOPE
+//		else if (a < -BEAM_SLOPE)
+//			a = -BEAM_SLOPE
+//	}
 
 	/* to decide if to draw flat etc. use normalized slope a0 */
 	a0 = a * (s2.xs - s1.xs) / (20 * (notes - 1))
@@ -389,10 +389,7 @@ function calculate_beam(bm, s1) {
 			}
 			break
 		case GRACE:
-			g = s.extra
-			for ( ; g; g = g.next) {
-				if (g.type != NOTE)
-					continue
+			for (g = s.extra; g; g = g.next) {
 				y = a * g.x + b
 				if (s1.stem > 0) {
 					y = g.ymx - y
@@ -1063,7 +1060,7 @@ function draw_rest(s) {
 
 	/* if rest alone in the measure or measure repeat, center */
 	if (s.dur == s.p_v.meter.wmeasure
-	 || (s.repeat_n && s.repeat_n >= 0)) {
+	 || (s.rep_nb && s.rep_nb >= 0)) {
 
 		/* don't use next/prev: there is no bar in voice overlay */
 		s2 = s.ts_next
@@ -1090,16 +1087,16 @@ function draw_rest(s) {
 
 	staffb = p_staff.y			/* bottom of staff */
 
-	if (s.repeat_n) {
+	if (s.rep_nb) {
 		staffb += 12
-		if (s.repeat_n < 0) {
+		if (s.rep_nb < 0) {
 			xygl(x, staffb, "srep")
 		} else {
 			xygl(x, staffb, "mrep")
-			if (s.repeat_n > 2 && s.v == cur_sy.top_voice) {
+			if (s.rep_nb > 2 && s.v == cur_sy.top_voice) {
 				set_font("annotation");
 				xy_str(x, staffb + p_staff.topbar - 9,
-					s.repeat_n.toString(), "c")
+					s.rep_nb.toString(), "c")
 			}
 		}
 		return
@@ -1154,8 +1151,6 @@ function draw_gracenotes(s) {
 	/* draw the notes */
 //	bm.s2 = undefined			/* (draw flags) */
 	for (g = s.extra; g; g = g.next) {
-		if (g.type != NOTE)
-			continue
 		if (g.beam_st && !g.beam_end) {
 			if (calculate_beam(bm, g))
 				draw_beams(bm)
@@ -1198,8 +1193,6 @@ function draw_gracenotes(s) {
 	if (last.stem >= 0) {
 		yy = 127
 		for (g = s.extra; g; g = g.next) {
-			if (g.type != NOTE)
-				continue
 			if (g.y < yy) {
 				yy = g.y;
 				last = g
@@ -1238,8 +1231,6 @@ function draw_gracenotes(s) {
 	} else {
 		yy = -127
 		for (g = s.extra; g; g = g.next) {
-			if (g.type != NOTE)
-				continue
 			if (g.y > yy) {
 				yy = g.y;
 				last = g
@@ -1782,7 +1773,8 @@ if (two_staves) error(2, k1, "*** multi-staves slurs not treated yet")
 	} else {		/* (the slur starts on last note of the line) */
 		for (k = k2.ts_next; k; k = k.ts_next)
 //fixme: must check if the staff continues
-			if (k.new_sy)
+//			if (k.new_sy)
+			if (k.type == STAVES)
 				break
 		if (!k)
 			x2 = realwidth
@@ -1982,8 +1974,6 @@ if (two_staves) error(2, k1, "*** multi-staves slurs not treated yet")
 			break
 		case GRACE:
 			for (g = k.extra; g; g = g.next) {
-				if (g.type != NOTE)
-					continue
 				if (dir > 0) {
 					y = 3 * (g.notes[g.nhd].pit - 18) + 6
 					if (y < g.ymx)
@@ -2238,44 +2228,20 @@ function draw_slurs(first, last) {
 /* (the staves are not yet defined) */
 /* (delayed output) */
 /* See http://moinejf.free.fr/abcm2ps-doc/tuplets.xhtml
- * about the value of 'tuplet_f' */
-function draw_tuplet(t,		/* tuplet in extra */
-		     s) {	/* main note */
-	var	s1, s2, s3, g, r, upstaff, nb_only, some_slur,
+ * about the value of 'tf' */
+function draw_tuplet(s1,
+			lvl) {	// nesting level
+	var	s2, s3, g, upstaff, nb_only, some_slur,
 		x1, x2, y1, y2, xm, ym, a, s0, yy, yx, dy, a, b, dir,
-		next = s
+		p, q
 
-	if (t.tuplet_f[0] == 1)		/* if 'when' == never */
-		return next
-
-	/* treat the nested tuplets starting on this symbol */
-	for (g = t.next; g; g = g.next) {
-		if (g.type == TUPLET) {
-			s3 = draw_tuplet(g, s)
-			if (s3.time > next.time)
-				next = s3
-		}
-	}
-
-	/* search the first and last notes/rests of the tuplet */
-	r = t.tuplet_r;
-	upstaff = s.st
-	for (s2 = s; s2; s2 = s2.next) {
-		if (s2 != s
-		 && s2.in_tuplet) {
-			for (g = s2.extra; g; g = g.next) {
-				if (g.type == TUPLET) {
-					s3 = draw_tuplet(g, s2)
-					if (s3.time > next.time)
-						next = s3
-				}
-			}
-		}
+	// check if some slurs
+	// and treat the nested tuplets
+	upstaff = s1.st
+	for (s2 = s1; s2; s2 = s2.next) {
 		if (s2.type != NOTE && s2.type != REST) {
 			if (s2.type == GRACE) {
 				for (g = s2.extra; g; g = g.next) {
-					if (g.type != NOTE)
-						continue
 					if (g.slur_start || g.sl1)
 						some_slur = true
 				}
@@ -2287,29 +2253,43 @@ function draw_tuplet(t,		/* tuplet in extra */
 			some_slur = true
 		if (s2.st < upstaff)
 			upstaff = s2.st
-		if (!s1)
-			s1 = s2
-		if (--r <= 0)
+		if (lvl == 0) {
+			if (s2.tp1)
+				draw_tuplet(s2, 1)
+			if (s2.te0)
+				break
+		} else if (s2.te1)
 			break
 	}
-	if (!s2)
-		return next			/* no solution... */
-	if (s2.time > next.time)
-		next = s2;
 
-	dir = t.tuplet_f[3]			/* 'where' (SL_xxx) */
+	if (lvl == 0) {
+		p = s1.tp0;
+		q = s1.tq0
+	} else {
+		p = s1.tp1;
+		q = s1.tq1
+	}
+
+	if (s1.tf[0] == 1) {			/* if 'when' == never */
+		s1.in_tuplet = false
+		if (lvl == 0)
+			s1.tp0 = 0
+		else
+			s1.tp1 = 0
+		return
+	}
+
+	dir = s1.tf[3]				/* 'where' (SL_xxx) */
 	if (!dir)
 		dir = s1.stem > 0 ? SL_ABOVE : SL_BELOW
 
-	if (s1 == s2) {				/* tuplet with 1 note (!) */
-		nb_only = true
-	} else if (t.tuplet_f[1] == 1) {	/* 'what' == slur */
+	if (s1.tf[1] == 1) {			/* 'what' == slur */
 		nb_only = true;
 		draw_slur(s1, s2, -1, -1, dir)
 	} else {
 
 		/* search if a bracket is needed */
-		if (t.tuplet_f[0] == 2		/* if 'when' == always */
+		if (s1.tf[0] == 2		/* if 'when' == always */
 		 || s1.type != NOTE || s2.type != NOTE) {
 			nb_only = false
 		} else {
@@ -2360,8 +2340,8 @@ function draw_tuplet(t,		/* tuplet in extra */
 
 	/* if number only, draw it */
 	if (nb_only) {
-		if (t.tuplet_f[2] == 1)		/* if 'value' == none */
-			return next;
+		if (s1.tf[2] == 1)		/* if 'value' == none */
+			return
 		xm = (s2.x + s1.x) / 2
 		if (s1 == s2)			/* tuplet with 1 note */
 			a = 0
@@ -2370,12 +2350,12 @@ function draw_tuplet(t,		/* tuplet in extra */
 		b = s1.ys - a * s1.x;
 		yy = a * xm + b
 		if (dir == SL_ABOVE) {
-			ym = y_get(upstaff, 1, xm - 3, 6)
+			ym = y_get(upstaff, 1, xm - 4, 8)
 			if (ym > yy)
 				b += ym - yy;
 			b += 2
 		} else {
-			ym = y_get(upstaff, 0, xm - 3, 6)
+			ym = y_get(upstaff, 0, xm - 4, 8)
 			if (ym < yy)
 				b += ym - yy;
 			b -= 10
@@ -2391,10 +2371,10 @@ function draw_tuplet(t,		/* tuplet in extra */
 				xm -= 1.5
 		}
 		ym = a * xm + b
-		if (t.tuplet_f[2] == 0)		/* if 'value' == number */
-			out_bnum(xm, ym, t.tuplet_p)
+		if (s1.tf[2] == 0)		/* if 'value' == number */
+			out_bnum(xm, ym, p)
 		else
-			out_bnum(xm, ym, t.tuplet_p + ':' +  t.tuplet_q)
+			out_bnum(xm, ym, p + ':' +  q)
 		if (dir == SL_ABOVE) {
 			ym += 10
 			if (s3.ymx < ym)
@@ -2405,31 +2385,35 @@ function draw_tuplet(t,		/* tuplet in extra */
 				s3.ymn = ym;
 			y_set(upstaff, false, xm - 3, 6, ym)
 		}
-		s.in_tuplet = false		/* the tuplet is drawn */
-		return next
+		s1.in_tuplet = false		/* the tuplet is drawn */
+		if (lvl == 0)
+			s1.tp0 = 0
+		else
+			s1.tp1 = 0
+		return
 	}
 
 	/* draw the slurs when inside the tuplet */
 	if (some_slur) {
 		draw_slurs(s1, s2)
 		if (s1.slur_start || s1.sl1)
-			return next
+			return
 		for (s3 = s1.next; s3 != s2; s3 = s3.next) {
 			if (s3.slur_start || s3.slur_end /* if slur start/end */
 			 || s3.sl1 || s3.sl2)
-				return next		/* don't draw now */
+				return			/* don't draw now */
 		}
 
 		/* don't draw the tuplet when a slur ends on the last note */
 		if (s2.slur_end || s2.sl2)
-			return next
+			return
 	}
-	if (t.tuplet_f[1] != 0)				/* if 'what' != square */
-		error(2, t, "'what' value of %%tuplets not yet coded")
+	if (s1.tf[1] != 0)				/* if 'what' != square */
+		error(2, s1, "'what' value of %%tuplets not yet coded")
 
 /*fixme: two staves not treated*/
 /*fixme: to optimize*/
-	dir = t.tuplet_f[3]			// 'where'
+	dir = s1.tf[3]				// 'where'
 	if (!dir)
 		dir = s1.multi >= 0 ? SL_ABOVE : SL_BELOW
     if (dir == SL_ABOVE) {
@@ -2444,7 +2428,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 				if (s3.type == NOTE)
 					break
 		}
-		ym = y_get(upstaff, 1, s3.x, 0)
+		ym = y_get(upstaff, 1, s3.x - 4, 8)
 		if (ym > y1)
 			y1 = ym
 		if (s1.stem > 0)
@@ -2458,7 +2442,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 				if (s3.type == NOTE)
 					break
 		}
-		ym = y_get(upstaff, 1, s3.x, 0)
+		ym = y_get(upstaff, 1, s3.x - 4, 8)
 		if (ym > y2)
 			y2 = ym
 	}
@@ -2508,7 +2492,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 			continue
 		}
 		yy = ym + (s3.x - xm) * a;
-		yx = y_get(upstaff, 1, s3.x, 0)
+		yx = y_get(upstaff, 1, s3.x - 4, 8)
 		if (yx - yy > dy)
 			dy = yx - yy
 		if (s3 == s2)
@@ -2536,7 +2520,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 	}
 
     } else {	/* lower voice of the staff: the bracket is below the staff */
-/*fixme: think to all that again..*/
+/*fixme: think to all of that again..*/
 	x1 = s1.x - 7
 	if (s2.dur > s2.prev.dur) {
 		if (s2.next)
@@ -2560,7 +2544,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 				if (s3.type == NOTE)
 					break
 		}
-		y1 = y_get(upstaff, 0, s3.x, 0)
+		y1 = y_get(upstaff, 0, s3.x - 4, 8)
 	} else {
 		y1 = 0
 	}
@@ -2571,7 +2555,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 				if (s3.type == NOTE)
 					break
 		}
-		y2 = y_get(upstaff, 0, s3.x, 0)
+		y2 = y_get(upstaff, 0, s3.x - 4, 8)
 	} else {
 		y2 = 0
 	}
@@ -2595,7 +2579,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 	if (a * a < .1 * .1)
 		a = 0
 
-	/* shift down bracket if needed */
+	/* shift down the bracket if needed */
 	dy = 0
 	for (s3 = s1; ; s3 = s3.next) {
 		if (!s3.dur			/* not a note nor a rest */
@@ -2605,7 +2589,7 @@ function draw_tuplet(t,		/* tuplet in extra */
 			continue
 		}
 		yy = ym + (s3.x - xm) * a;
-		yx = y_get(upstaff, 0, s3.x, 0)
+		yx = y_get(upstaff, 0, s3.x - 4, 8)
 		if (yx - yy < dy)
 			dy = yx - yy
 		if (s3 == s2)
@@ -2633,15 +2617,19 @@ function draw_tuplet(t,		/* tuplet in extra */
 	}
     } /* lower voice */
 
-	if (t.tuplet_f[2] == 1) {	/* if 'value' == none */
-		s.in_tuplet = false
-		return next
+	if (s1.tf[2] == 1) {			/* if 'value' == none */
+		s1.in_tuplet = false
+		if (lvl == 0)
+			s1.tp0 = 0
+		else
+			s1.tp1 = 0
+		return
 	}
 	yy = .5 * (y1 + y2)
-	if (t.tuplet_f[2] == 0)			/* if 'which' == number */
-		out_bnum(xm, yy, t.tuplet_p, true)
+	if (s1.tf[2] == 0)			/* if 'which' == number */
+		out_bnum(xm, yy, p, true)
 	else
-		out_bnum(xm, yy, t.tuplet_p + ':' +  t.tuplet_q, true)
+		out_bnum(xm, yy, p + ':' +  q, true)
 	if (dir == SL_ABOVE) {
 //		yy += 8
 		yy += 9;
@@ -2653,8 +2641,11 @@ function draw_tuplet(t,		/* tuplet in extra */
 //			s3.ymn = yy
 		y_set(upstaff, false, xm - 3, 6, yy)
 	}
-	s.in_tuplet = false
-	return next
+	s1.in_tuplet = false
+	if (lvl == 0)
+		s1.tp0 = 0
+	else
+		s1.tp1 = 0
 }
 
 /* -- draw the ties between two notes/chords -- */
@@ -3148,14 +3139,18 @@ function draw_sym_near() {
 
 		p_voice = voice_tb[v]
 		for (s = p_voice.sym; s; s = s.next) {
-			for (g = s.extra; g; g = g.next) {
-				if (g.type != NOTE)
-					continue
-				if (g.beam_st && !g.beam_end)
-					calculate_beam(bm, g)
-			}
-			if (s.type != NOTE)
+			switch (s.type) {
+			case GRACE:
+				for (g = s.extra; g; g = g.next) {
+					if (g.beam_st && !g.beam_end)
+						calculate_beam(bm, g)
+				}
 				continue
+			default:
+				continue
+			case NOTE:
+				break
+			}
 			if ((s.beam_st && !s.beam_end)
 			 || (first_note && !s.beam_st)) {
 				first_note = false;
@@ -3194,7 +3189,7 @@ function draw_sym_near() {
 			}
 			continue
 		case MREST:
-			y_set(s.st, true, s.x - 16, 32, s.ymx + 2)
+			y_set(s.st, true, s.x + 16, 32, s.ymx + 2)
 			continue
 		default:
 			y_set(s.st, true, s.x - s.wl, s.wl + s.wr, s.ymx + 2);
@@ -3260,7 +3255,7 @@ function draw_sym_near() {
 	}
 
 	if (cfmt.measurenb >= 0)
-		draw_measnb();
+		draw_measnb()
 
 //	draw_deco_note()
 
@@ -3279,29 +3274,15 @@ function draw_sym_near() {
 
 		/* draw the tuplets near the notes */
 		for ( ; s; s = s.next) {
-			if (!s.in_tuplet)
-				continue
-			for (g = s.extra; g; g = g.next) {
-				if (g.type == TUPLET) {
-					s = draw_tuplet(g, s)
-					break
-				}
-			}
+			if (s.tp0)
+				draw_tuplet(s, 0)
 		}
 		draw_all_slurs(p_voice)
 
 		/* draw the tuplets over the slurs */
 		for (s = p_voice.sym; s; s = s.next) {
-			if (!s.in_tuplet)
-				continue
-//			anno_start(s, 'tuplet')
-			for (g = s.extra; g; g = g.next) {
-				if (g.type == TUPLET) {
-					s = draw_tuplet(g, s)
-					break
-				}
-			}
-//			anno_stop(s, 'tuplet')
+			if (s.tp0)
+				draw_tuplet(s, 0)
 		}
 	}
 
@@ -3441,7 +3422,7 @@ function set_staff() {
 	}
 //--fixme: could use sy.next with a stop flag
 	for (s = tsfirst; s; s = s.ts_next) {
-		if (!s.new_sy)
+		if (s.type != STAVES)
 			continue
 		sy = sy.next
 		for (st = 0; st < sy.staves.length; st++) {
@@ -3657,15 +3638,15 @@ function draw_systems(indent) {
 	bar_set();
 	draw_lstaff(0)
 	for (s = tsfirst; s; s = s.ts_next) {
-		if (s.new_sy) {
-//fixme next_sy useless
+		if (s.type == STAVES) {
 			next_sy = cur_sy.next
 			for (st = 0; st <= nstaff; st++) {
 				x = xstaff[st]
 				if (x < 0) {			// no staff yet
 					if (next_sy.staves[st]
 					 && !next_sy.staves[st].empty) {
-						if (s.type == BAR)
+						if (s.next
+						&& s.next.type == BAR)
 							xstaff[st] = s.x
 						else
 							xstaff[st] = s.x - s.wl - 2
@@ -3688,6 +3669,7 @@ function draw_systems(indent) {
 			}
 			cur_sy = next_sy;
 			bar_set()
+			continue
 		}
 		st = s.st
 		switch (s.type) {
@@ -3856,6 +3838,7 @@ function draw_symbols(p_voice) {
 			break
 		case MREST:
 			set_scale(s);
+			x += 32;
 			anno_start(s);
 			xygl(x, staff_tb[s.st].y + 12, "mrest");
 //			output.push('<text style="font:bold 15px serif"\n\
@@ -3873,12 +3856,17 @@ function draw_symbols(p_voice) {
 			break
 		case SPACE:
 		case STBRK:
-		case FORMAT:
 			break			/* nothing */
 		case CUSTOS:
 			set_scale(s);
 //			s.stemless = true;
 			draw_note(s, 0)
+			break
+		case BLOCK:			// no width
+		case PART:
+		case REMARK:
+		case STAVES:
+		case TEMPO:
 			break
 		default:
 			error(2, s, "draw_symbols - Cannot draw symbol " + s.type)

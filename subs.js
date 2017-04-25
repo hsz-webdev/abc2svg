@@ -611,15 +611,16 @@ function write_headform(lwidth) {
 			y = ya[align] + sz
 
 			if (c == 'Q') {			/* special case for tempo */
-				if (align != 'l') {
-					var w = tempo_width(glovar.tempo)
+				if (!glovar.tempo.del) {
+					if (align != 'l') {
+						var w = tempo_width(glovar.tempo)
 
-					if (align == 'c')
-						w *= .5;
-					x -= w
+						if (align == 'c')
+							w *= .5;
+						x -= w
+					}
+					write_tempo(glovar.tempo, x, -y)
 				}
-				if (!glovar.tempo.del)
-					write_tempo(glovar.tempo, x, -y, .75)
 			} else if (str) {
 				xy_str(x, -y, str, align)
 			}

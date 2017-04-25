@@ -1,5 +1,5 @@
 /* edit.css - file used in the abc2svg editor */
-@page {margin:0}
+@page {margin-top: 1cm; margin-left: 0cm; margin-right: 0cm}
 text tspan {white-space:pre; fill:currentColor}
 svg {display:block}
 .abcr {fill:#a08000; fill-opacity:0; z-index: 15}

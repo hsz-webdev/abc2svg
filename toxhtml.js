@@ -47,7 +47,7 @@ function abc_init() {
 //		"<!-- CommandLine: " + args.toString() + " -->")
 	print('<style type="text/css">\n\
 	body {margin:0; padding:0; border:0}\n\
-	@page {margin:0}\n\
+	@page {margin-top: 1cm}\n\
 	text, tspan {white-space:pre}\n\
 	svg {display:block}\n\
 	@media print {\n\

@@ -351,7 +351,7 @@ function AbcPlay(i_onend, i_instr_dir) {
 			    voice_tb) {		// voice table
 		var	bmap = [],		// measure base map
 			map = [],		// current map - 10 octaves
-			i, n, dt, d, g,
+			i, n, dt, d,
 			rep_st_i,		// repeat start index
 			rep_st_t,		// and time
 			rep_en_i,		// repeat stop index
@@ -486,6 +486,7 @@ function AbcPlay(i_onend, i_instr_dir) {
 				next = s.next
 
 			if (next.type != NOTE) {
+				// fixme: reduce the duration of the previous note
 				// fixme: to do later
 				for (g = s.extra; g; g = g.next) {
 					if (g.type != NOTE)
@@ -553,15 +554,13 @@ function AbcPlay(i_onend, i_instr_dir) {
 
 		// loop on the symbols
 		while (s) {
-			for (g = s.extra; g; g = g.next) {
-				if (g.type == TEMPO
-				 && g.tempo) {
-					d = 0;
-					n = g.tempo_notes.length
-					for (i = 0; i < n; i++)
-						d += g.tempo_notes[i];
-					play_factor = d * g.tempo / 60
-				}
+			if (s.type == TEMPO
+			 && s.tempo) {
+				d = 0;
+				n = s.tempo_notes.length
+				for (i = 0; i < n; i++)
+					d += s.tempo_notes[i];
+				play_factor = d * s.tempo / 60
 			}
 
 			dt = s.time - abc_time

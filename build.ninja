@@ -1,8 +1,8 @@
 # rules for ninja (ninja-build)
 
 MAJOR=1
-MINOR=11
-PATCH=2
+MINOR=12
+PATCH=5
 VERSION=$MAJOR.$MINOR.$PATCH
 
 rule cp

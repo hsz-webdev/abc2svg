@@ -247,7 +247,7 @@ function draw_lyric_line(p_voice, j, y) {
 		 && s.type != KEY && s.type != METER)
 			break
 	lastx = s.prev ? s.prev.x : tsfirst.x;
-	x0 = 0;
+	x0 = 0
 	for ( ; s; s = s.next) {
 		if (s.a_ly)
 			ly = s.a_ly[j]
@@ -265,9 +265,8 @@ function draw_lyric_line(p_voice, j, y) {
 			}
 			continue
 		}
-		if (ly.font != gene.curfont) {		/* font change */
-			gene.curfont = font = ly.font
-		}
+		if (ly.font != gene.curfont)		/* font change */
+			gene.curfont = font = ly.font;
 		p = ly.t;
 		w = ly.w;
 		shift = ly.shift
@@ -354,9 +353,9 @@ function draw_lyric_line(p_voice, j, y) {
 function draw_lyrics(p_voice, nly, a_h, y,
 				incr) {	/* 1: below, -1: above */
 	var	j, top,
-		sc = staff_tb[p_voice.st].staffscale
+		sc = staff_tb[p_voice.st].staffscale;
 
-	set_font("vocal");
+	set_font("vocal")
 	if (incr > 0) {				/* under the staff */
 		if (y > -cfmt.vocalspace)
 			y = -cfmt.vocalspace;
@@ -366,7 +365,7 @@ function draw_lyrics(p_voice, nly, a_h, y,
 			y -= a_h[j] * 1.1;
 			draw_lyric_line(p_voice, j, y)
 		}
-		return y / sc
+		return (y - a_h[j - 1] / 6) / sc
 	}
 
 	/* above the staff */

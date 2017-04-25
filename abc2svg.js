@@ -10,7 +10,7 @@
 const	BAR = 0,
 	CLEF = 1,
 	CUSTOS = 2,
-	FORMAT = 3,
+//	FORMAT = 3,
 	GRACE = 4,
 	KEY = 5,
 	METER = 6,
@@ -22,7 +22,7 @@ const	BAR = 0,
 	STAVES = 12,
 	STBRK = 13,
 	TEMPO = 14,
-	TUPLET = 15,
+//	TUPLET = 15,
 	BLOCK = 16,
 	REMARK = 17,
 
@@ -124,10 +124,7 @@ function errbld(sev, txt, fn, idx) {
 	case 1: h += "Error: "; break
 	default: h += "Internal bug: "; break
 	}
-	txt = txt.replace(/&/g, '&amp;');
-	txt = txt.replace(/</g, '&lt;');
-	txt = txt.replace(/>/g, '&gt;');
-	user.errmsg(h + txt, l, c)
+	user.errmsg(h + clean_txt(txt), l, c)
 }
 
 function error(sev, s, msg, a1, a2, a3, a4) {

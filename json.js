@@ -101,8 +101,10 @@ function AbcJSON(nindent) {			// indentation level
 	h = ',\n' + inb + '"music_type_ids": {\n';
 	l = anno_type.length
 	for (i = 0; i < l; i++) {
-		json += h + ind2 + '"' + anno_type[i] + '": ' + i;
-		h = ',\n'
+		if (anno_type[i]) {
+			json += h + ind2 + '"' + anno_type[i] + '": ' + i;
+			h = ',\n'
+		}
 	}
 
 	// info

@@ -113,61 +113,48 @@ function mrest_expand(s) {
 	s2.a_dd = a_dd
 }
 
-/* -- copy the extra symbols -- */
-function extra_cp(s, extra) {
-	var	g = s.extra
-
-	if (!g) {
-		s.extra = extra
-		return
-	}
-	for (; g.next; g = g.next)
-		;
-	g.next = extra
-}
-
 /* -- sort all symbols by time and vertical sequence -- */
+// weight of the symbols !! depends on the symbol type !!
+const w_tb = [
+	2,	// bar
+	1,	// clef
+	7,	// custos
+	0,	// (free)
+	3,	// grace
+	5,	// key
+	6,	// meter
+	9,	// mrest
+	9,	// note
+	0,	// part
+	9,	// rest
+	3,	// space
+	0,	// staves
+	7,	// stbrk
+	0,	// tempo
+	0,	// (free)
+	0,	// block
+	0	// remark
+]
+
 function sort_all() {
 	var	s, s2, p_voice, v, time, w, wmin, ir, multi,
-		prev, new_sy, fl, nb,
+		prev, new_sy, nb,
 		nv = voice_tb.length,
 		vtb = [],
 		vn = [],			/* voice indexed by range */
 		mrest_time = -1
 
-	// weight of the symbols !! depends on the symbol type !!
-	const w_tb = [
-		2,	// bar
-		1,	// clef
-		7,	// custos
-		0,	// format
-		3,	// grace
-		5,	// key
-		6,	// meter
-		9,	// mrest
-		9,	// note
-		0,	// part
-		9,	// rest
-		3,	// space
-		0,	// staves
-		7,	// stbrk
-		0,	// tempo
-		8,	// tuplet
-		0,	// block
-		0	// remark
-	]
-
 	for (v = 0; v < nv; v++)
 		vtb.push(voice_tb[v].sym)
 
 	/* initialize the voice order */
-	var	sy = cur_sy,
+	var	fl = 1,
+		sy = cur_sy,
 		set_sy = true
 
 	while (1) {
 		if (set_sy) {
 			set_sy = false;
-			fl = 1;			// start a new sequence
 			multi = -1;
 			vn = []
 			for (v = 0; v < nv; v++) {
@@ -257,62 +244,35 @@ function sort_all() {
 				continue
 			if (s.type == STAVES) {
 				sy = sy.next;
-				set_sy = true;
-
-				// remove the STAVES symbol but keep the extra's
-				new_sy = s
-				if (s.prev)
-					s.prev.next = s.next
-				else
-					voice_tb[v].sym = s.next
-				if (s.next)
-					s.next.prev = s.prev
-			} else {
-				if (fl) {
-					fl = 0;
-					s.seqst = true
-				}
-				if (new_sy) {
-					if (new_sy.extra)
-						extra_cp(s, new_sy.extra);
-					new_sy = null;
-					s.new_sy = true
-				}
-				s.ts_prev = prev
-				if (prev) {
-					prev.ts_next = s
-//fixme: bad error when the 1st voice is second
-//					if (s.type == BAR
-//					 && s.second
-//					 && prev.type != BAR
-//					 && !s.invis)
-//						error(1, s, "Bad measure bar")
-				} else {
-					tsfirst = s
-				}
-				prev = s
+				set_sy = true
 			}
+			if (fl) {
+				fl = 0;
+				s.seqst = true
+			}
+			s.ts_prev = prev
+			if (prev)
+				prev.ts_next = s
+			else
+				tsfirst = s
+			prev = s
+
 			vtb[v] = s.next
 		}
-		fl = wmin		/* start a new sequence if some space */
+		fl = wmin		/* start a new sequence if some width */
 	}
 
 	if (!prev)
 		return
 
-	/* if no bar or format_change at end of tune, add a dummy symbol */
-	if ((prev.type != BAR && prev.type != FORMAT)
-	 || new_sy) {
+	/* if no bar nor space at end of tune, add some space */
+	if (prev.dur) {
 		p_voice = prev.p_v;
 		p_voice.last_sym = prev;
-		s = sym_add(p_voice, FORMAT);
+		s = sym_add(p_voice, SPACE);
 		s.time = prev.time + prev.dur;
-		s.seqst = true
-		if (new_sy) {
-			if (new_sy.extra)
-				extra_cp(s, new_sy.extra);
-			s.new_sy = true
-		}
+		s.seqst = true;
+		s.width = 6;
 		prev.ts_next = s;
 		s.ts_prev = prev
 		while (1) {
@@ -322,34 +282,11 @@ function sort_all() {
 			prev = prev.ts_prev
 		}
 	}
-
-	/* if Q: from tune header, put it at start of the music */
-	s2 = glovar.tempo
-	if (!s2)
-		return
-//	glovar.tempo = null;
-	s = tsfirst.extra
-	while (s) {
-		if (s.type == TEMPO)
-			return			/* already a tempo */
-		s = s.next
-	}
-	s = tsfirst;
-//	s2.type = TEMPO
-	s2.v = s.v;
-	s2.p_v = s.p_v;
-	s2.st = s.st;
-	s2.time = s.time
-	if (s.extra) {
-		s2.next = s.extra;
-		s2.next.prev = s2
-	}
-	s.extra = s2
 }
 
-/* -- move the symbols with no width to the next symbol -- */
-function compr_voice() {
-	var p_voice, s, s2, s3, ns, v
+// adjust some voice elements
+function voice_adj() {
+	var p_voice, s, s2, s3, v
 
 	// set the duration of the notes under a feathered beam
 	function set_feathered_beam(s1) {
@@ -375,7 +312,6 @@ function compr_voice() {
 			for (s = s1, i = n - 1;
 			     s != s2;
 			     s = s.next, i--) {
-//				d = Math.floor(a * i) + b;
 				d = ((a * i) | 0) + b;
 				s.dur = d;
 				s.time = t;
@@ -385,7 +321,6 @@ function compr_voice() {
 			for (s = s1, i = 0;
 			     s != s2;
 			     s = s.next, i++) {
-//				d = Math.floor(a * i) + b;
 				d = ((a * i) | 0) + b;
 				s.dur = d;
 				s.time = t;
@@ -396,6 +331,21 @@ function compr_voice() {
 		s.time = t
 	} // end set_feathered_beam()
 
+	/* if Q: from tune header, put it at start of the music */
+	s = glovar.tempo
+	if (s && staves_found <= 0) {	// && !s.del) {		- play problem
+		v = par_sy.top_voice;
+		p_voice = voice_tb[v];
+		s.v = v;
+		s.p_v = p_voice;
+		s.st = p_voice.st;
+		s.time = 0;
+		s.next = p_voice.sym
+		if (s.next)
+			s.next.prev = s;
+		p_voice.sym = s
+	}
+
 	for (v = 0; v < voice_tb.length; v++) {
 		p_voice = voice_tb[v]
 		if (p_voice.ignore)
@@ -404,139 +354,63 @@ function compr_voice() {
 			if (s.time >= staves_found)
 				break
 		}
-		ns = null
 		for ( ; s; s = s.next) {
 			switch (s.type) {
-			case FORMAT:
-				s2 = s.extra
-				if (s2) {	/* dummy format */
-					if (!ns)
-						ns = s2
-					if (s.prev) {
-						s.prev.next = s2;
-						s2.prev = s.prev
-					}
-//					if (!s.next) {
-//						ns = null
-//						break
-//					}
-					if (!s.next)
+			case CLEF:	// move the clefs before the measure bars
+				for (s2 = s.prev; s2; s2 = s2.prev) {
+					switch (s2.type) {
+					case BAR:
+						break
+					case MREST:
+					case NOTE:
+					case REST:
+					case SPACE:
+					case STBRK:
+						s2 = undefined
+						break
+					default:
 						continue
-					while (s2.next)
-						s2 = s2.next;
-					s.next.prev = s2;
-					s2.next = s.next
-					continue
-				}
-				/* fall thru */
-			case TEMPO:
-			case PART:
-			case TUPLET:
-			case BLOCK:
-			case REMARK:
-				if (!ns)
-					ns = s
-				continue
-			case MREST:		/* don't shift P: and Q: */
-				if (!ns)
-					continue
-				s2 = {
-					type: SPACE,
-					width: -1,
-					invis: true,
-					v: s.v,
-					st: s.st,
-					time: s.time
-				}
-				s2.next = s;
-				s2.prev = s.prev;
-				s2.prev.next = s2;
-				s.prev = s2;
-				s = s2
-				break
-			}
-			if (s.feathered_beam)
-				set_feathered_beam(s)
-			if (s.grace) {
-				if (!ns)
-					ns = s
-				while (!s.gr_end)
-					s = s.next;
-				s2 = clone(s);
-				s2.type = GRACE;
-				s2.dur = 0;
-				s2.gr_shift = s.gr_shift
-				delete s2.notes;
-				s2.next = s.next
-				if (s2.next) {
-					s2.next.prev = s2
-					if (cfmt.graceword) {
-						for (s3 = s2.next; s3; s3 = s3.next) {
-							switch (s3.type) {
-							case SPACE:
-								continue;
-							case NOTE:
-								s2.a_ly = s3.a_ly;
-								s3.a_ly = null
-							default:
-								break
-							}
-							break
-						}
 					}
-				} else {
-					p_voice.last_sym = s2;
+					break
 				}
-				s2.prev = s;
-				s.next = s2;
-				s = s2
+				if (!s2)
+					continue
 
+				/* move the clef */
+				s.next.prev = s.prev;
+				s.prev.next = s.next;
+				s.next = s2;
+				s.prev = s2.prev;
+				s.prev.next = s;
+				s2.prev = s
+				continue
+			case GRACE:
 				// with w_tb[BAR] = 2,
-				// the grace notes go after the bar
+				// the grace notes go after the bar;
 				// if before a bar, change the grace time
 				if (s.next && s.next.type == BAR)
 					s.time--
-			}
-			if (!ns)
-				continue
-			s.extra = ns;
-			s.prev.next = null;	// end of extra
-			s.prev = ns.prev
-			if (s.prev) {
 
-				// change ':|' + '|:' into '::'
-				if (s.bar_type == '|:'
-				 && s.prev.bar_type == ':|') {
-					s.bar_type = '::'
-					if (s.prev.eoln)
-						s.eoln = true;
-					s.prev = s.prev.prev
-					if (s.prev)
-						s.prev.next = s
-					else
-						p_voice.sym = s
-				} else {
-					s.prev.next = s
+				if (!cfmt.graceword)
+					continue
+				for (s2 = s.next; s2; s2 = s2.next) {
+					switch (s2.type) {
+					case SPACE:
+						continue
+					case NOTE:
+						if (!s2.a_ly)
+							break
+						s.a_ly = s2.a_ly;
+						s2.a_ly = null
+						break
+					}
+					break
 				}
-			} else {
-				p_voice.sym = s
+				continue
 			}
-			ns.prev = null;
-			ns = null
-		}
 
-		/* when symbols with no space at end of tune,
-		 * add a dummy format */
-		if (ns) {
-			s = sym_add(p_voice, FORMAT);
-			s.extra = ns;
-			s.prev.next = null;	/* unlink */
-			s.prev = ns.prev
-			if (s.prev)
-				s.prev.next = s
-			else
-				p_voice.sym = s;
-			ns.prev = null
+			if (s.feathered_beam)
+				set_feathered_beam(s)
 		}
 	}
 }
@@ -707,8 +581,6 @@ function do_clip() {
 		/* update the start of voices */
 		sy = cur_sy
 		for (s2 = tsfirst; s2 != s; s2 = s2.ts_next) {
-			if (s2.new_sy)
-				sy = sy.next
 			switch (s2.type) {
 			case CLEF:
 				s2.p_v.clef = s2
@@ -718,6 +590,9 @@ function do_clip() {
 				break
 			case METER:
 				s2.p_v.meter = clone(s2.as.u.meter)
+				break
+			case STAVES:
+				sy = sy.next
 				break
 			}
 		}
@@ -805,7 +680,6 @@ function set_bar_num() {
 		case METER:
 		case CLEF:
 		case KEY:
-		case FORMAT:
 		case STBRK:
 			continue
 		case BAR:
@@ -835,13 +709,7 @@ function set_bar_num() {
 	for ( ; s; s = s.ts_next) {
 		switch (s.type) {
 		case CLEF:
-			if (s.new_sy)
-				break
 			for (s2 = s.ts_prev; s2; s2 = s2.ts_prev) {
-				if (s2.new_sy) {
-					s2 = undefined
-					break
-				}
 				switch (s2.type) {
 				case BAR:
 					if (s2.seqst)
@@ -851,8 +719,8 @@ function set_bar_num() {
 				case NOTE:
 				case REST:
 				case SPACE:
+				case STAVES:
 				case STBRK:
-				case TUPLET:
 					s2 = undefined
 					break
 				default:
@@ -880,18 +748,6 @@ function set_bar_num() {
 //				delete s.new_sy;
 //				s.ts_next.new_sy = true
 //			}
-			s3 = s.extra
-			if (s3) {
-				if (s.ts_next.extra) {
-					while (s3.next)
-						s3 = s3.next;
-					s3.next = s.ts_next.extra;
-					s.ts_next.extra = s.extra
-				} else {
-					s.ts_next.extra = s3
-				}
-				s.extra = undefined
-			}
 			s = s2
 			break
 		case METER:
@@ -1125,8 +981,8 @@ function set_transp() {
 		curvoice.key = clone(curvoice.okey);
 		key_transp(curvoice.key);
 		curvoice.ckey = clone(curvoice.key)
-//		if (curvoice.key.k_none)
-//			curvoice.key.k_sf = 0
+		if (curvoice.key.k_none)
+			curvoice.key.k_sf = 0
 		return
 	}
 
@@ -1147,8 +1003,8 @@ function set_transp() {
 //		s.k_a_acc = curvoice.okey.k_a_acc;
 	key_transp(s);
 	curvoice.ckey = clone(s)
-//	if (curvoice.key.k_none)
-//		s.k_sf = 0
+	if (curvoice.key.k_none)
+		s.k_sf = 0
 }
 
 function set_ottava(dcn) {
@@ -1252,9 +1108,16 @@ function do_pscom(text) {
 			}
 			if (posy > multicol.maxy)
 				multicol.maxy = posy;
-			cfmt.leftmargin = multicol.lmarg;
-			posx = cfmt.leftmargin / cfmt.scale;
-			cfmt.rightmargin = multicol.rmarg;
+			if (parse.state == 3) {		// tune body
+				s = new_block("leftmargin");
+				s.param = multicol.lmarg.toFixed(2);
+				s = new_block("rightmargin");
+				s.param = multicol.rmarg.toFixed(2)
+			} else {
+				cfmt.leftmargin = multicol.lmarg;
+				posx = cfmt.leftmargin / cfmt.scale;
+				cfmt.rightmargin = multicol.rmarg
+			}
 			posy = multicol.posy
 			break
 		case "end":
@@ -1262,11 +1125,18 @@ function do_pscom(text) {
 				parse.line.error("%%multicol end without start")
 				break
 			}
-			cfmt.leftmargin = multicol.lmarg;
-			posx = cfmt.leftmargin / cfmt.scale;
-			cfmt.rightmargin = multicol.rmarg
 			if (posy < multicol.maxy)
 				posy = multicol.maxy;
+			if (parse.state == 3) {		// tune body
+				s = new_block("leftmargin");
+				s.param = multicol.lmarg.toFixed(2);
+				s = new_block("rightmargin");
+				s.param = multicol.rmarg.toFixed(2)
+			} else {
+				cfmt.leftmargin = multicol.lmarg;
+				posx = cfmt.leftmargin / cfmt.scale;
+				cfmt.rightmargin = multicol.rmarg
+			}
 			multicol = undefined;
 			blk_out()
 			break
@@ -1321,11 +1191,8 @@ function do_pscom(text) {
 		}
 		return
 	case "repeat":
-		if (parse.state != 3) {
-//			if (parse.state != 2)
+		if (parse.state != 3)
 				return
-//			goto_tune()
-		}
 		if (!curvoice.last_sym) {
 				parse.line.error("%%repeat cannot start a tune")
 				return
@@ -1348,25 +1215,13 @@ function do_pscom(text) {
 				k = 1
 			} else {
 				if (k < 1) {
-//				 || (curvoice.last_sym.type == BAR
-//				  && n == 2
-//				  && k > 1)) {
 					parse.line.error("Incorrect 2nd value in %%repeat")
 					return
 				}
 			}
 		}
-		s = {
-			type: FORMAT,
-			dur: 0,
-			fmt_type: "repeat",
-			repeat_k: k
-		}
-		if (curvoice.last_sym.type == BAR)
-			s.repeat_n = n
-		else
-			s.repeat_n = -n;
-		sym_link(s)
+		parse.repeat_n = curvoice.last_sym.type == BAR ? n : -n;
+		parse.repeat_k = k
 		return
 	case "sep":
 		lwidth = cfmt.pagewidth - cfmt.leftmargin - cfmt.rightmargin
@@ -1509,8 +1364,11 @@ function do_pscom(text) {
 		for (s = curvoice.last_sym; s; s = s.prev) {
 			switch (s.type) {
 			case NOTE:		// insert a key
-				do_info('K', 'shift=' + param)
-				return
+				s = clone(curvoice.okey);
+				s.ctx = parse.ctx;
+				s.istart = parse.istart;
+				s.iend = parse.iend
+				break
 			case KEY:
 				break
 			default:
@@ -1553,11 +1411,7 @@ function do_pscom(text) {
 	case "pagescale":
 	case "pagewidth":
 	case "scale":
-//		if (parse.state == 2)
-//			goto_tune()
 		if (parse.state == 3) {			// tune body
-//			generate();
-//			blk_out()
 			s = new_block(cmd);
 			s.param = param
 			return
@@ -1567,6 +1421,13 @@ function do_pscom(text) {
 			return
 		}
 		set_format(cmd, param, lock)
+		switch (cmd) {
+		case "leftmargin":
+		case "pagescale":
+		case "scale":
+			posx = cfmt.leftmargin / cfmt.scale
+			break
+		}
 		return
 	}
 	set_format(cmd, param, lock)
@@ -1641,7 +1502,9 @@ function do_begin_end(type,
 function generate() {
 	var v, p_voice;
 
-	compr_voice();
+	if (voice_tb.length == 0)
+		return
+	voice_adj();
 	dupl_voice();
 	sort_all()			/* define the time / vertical sequences */
 	if (!tsfirst)
@@ -1675,17 +1538,6 @@ function generate() {
 		delete p_voice.s_rtie
 	}
 	staves_found = 0			// (for compress/dup the voices)
-}
-
-/* -- output the music and lyrics after tune -- */
-function gen_ly(eob) {
-	generate()
-	if (info.W) {
-		put_words(info.W)
-		delete info.W
-	}
-	if (eob)
-		blk_out()
 }
 
 // transpose a key
@@ -1813,8 +1665,10 @@ function get_staves(cmd, param) {
 	if (!a_vf)
 		return
 
-	compr_voice();
-	dupl_voice()
+	if (voice_tb.length != 0) {
+		voice_adj();
+		dupl_voice()
+	}
 
 	/* create a new staff system */
 	var	maxtime = 0,
@@ -2164,7 +2018,6 @@ function is_voice_sig() {
 		switch (s.type) {
 		case TEMPO:
 		case PART:
-		case FORMAT:
 			break
 		default:
 			return false
@@ -2274,8 +2127,8 @@ function get_key(kp) {
 //		if (s_key.k_sf != undefined || s_key.k_a_acc) {
 //			curvoice.ckey = s_key;
 			curvoice.key = clone(s_key)
-//			if (s_key.k_none)
-//				curvoice.key.k_sf = 0
+			if (s_key.k_none)
+				curvoice.key.k_sf = 0
 //		}
 		return
 	}
@@ -2421,10 +2274,12 @@ function get_voice(parm) {
 		}
 	}
 
-	if (!curvoice.ignore
-	 && !curvoice.last_sym
-	 && parse.voice_opts)
+	if (!curvoice.filtered
+	 && !curvoice.ignore
+	 && parse.voice_opts) {
+		curvoice.filtered = true;
 		voice_filter()
+	}
 }
 
 // change state from 'tune header after K:' to 'in tune body'

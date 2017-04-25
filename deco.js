@@ -1560,7 +1560,6 @@ function draw_measnb() {
 				case METER:
 				case CLEF:
 				case KEY:
-				case FORMAT:
 				case STBRK:
 					continue
 				}
@@ -1594,16 +1593,22 @@ function draw_measnb() {
 	}
 
 	for ( ; s; s = s.ts_next) {
-		if (s.new_sy) {
+		switch (s.type) {
+		case STAVES:
 			sy = sy.next
 			for (st = 0; st < nstaff; st++) {
 				if (!sy.staves[st].empty)
 					break
 			}
 			set_sscale(st)
-		}
-		if (s.type != BAR || !s.bar_num)
 			continue
+		default:
+			continue
+		case BAR:
+			if (!s.bar_num)
+				continue
+			break
+		}
 
 		bar_num = s.bar_num
 		if (cfmt.measurenb == 0
@@ -1735,15 +1740,15 @@ function tempo_width(s) {
 }
 
 /* - output a tempo --*/
-function write_tempo(s, x, y, sc) {
-	var	j, dx;
+function write_tempo(s, x, y) {
+	var	j, dx,
+		sc = .5 * gene.curfont.size / 15.0; //fixme: 15.0 = initial tempofont
 
 	set_font("tempo")
 	if (s.tempo_str1) {
 		xy_str(x, y, s.tempo_str1);
 		x += strw(s.tempo_str1) + 6
 	}
-	sc *= .7 * gene.curfont.size / 15.0	/*fixme: 15.0 = initial tempofont*/
 	if (s.tempo_notes) {
 		for (j = 0; j < s.tempo_notes.length; j++)
 			x += draw_notempo(s, x, y, s.tempo_notes[j], sc);
@@ -1777,8 +1782,7 @@ function write_tempo(s, x, y, sc) {
 /* -- draw the parts and the tempo information -- */
 /* (the staves are being defined) */
 function draw_partempo(st, top) {
-	var	s, g, some_part, some_tempo, h, w, y,
-//		beat, 
+	var	s, some_part, some_tempo, h, w, y,
 		dy = 0,		/* put the tempo indication at top */
 		ht = 0
 
@@ -1788,17 +1792,11 @@ function draw_partempo(st, top) {
 		shift = 1,
 		x = 0
 	for (s = tsfirst; s; s = s.ts_next) {
-		g = s.extra
-		if (!g)
-			continue
-		for ( ; g; g = g.next)
-			if (g.type == TEMPO)
-				break
-		if (!g)
+		if (s.type != TEMPO || s.del)
 			continue
 		if (!some_tempo)
 			some_tempo = s;
-		w = tempo_width(g);
+		w = tempo_width(s);
 		y = y_get(st, true, s.x - 5, w) + 2
 		if (y > ymin)
 			ymin = y
@@ -1819,26 +1817,19 @@ function draw_partempo(st, top) {
 
 		/* draw the tempo indications */
 		for (s = some_tempo; s; s = s.ts_next) {
-			if (!s.seqst)
-				continue
-			for (g = s.extra; g; g = g.next)
-				if (g.type == TEMPO)
-					break
-			if (!g
-			 || g.del)		// (displayed by %%titleformat)
+			if (s.type != TEMPO
+			 || s.del)		// (displayed by %%titleformat)
 				continue
 			if (user.anno_start || user.anno_stop) {
-				g.x = s.x;
-				g.wl = 5;
-				g.wr = 40;
-				g.ymn = (dosh & 1) ? h : y;
-				g.ymx = g.ymn + 14;
-				anno_start(g)
+				s.wl = 5;
+				s.wr = 40;
+				s.ymn = (dosh & 1) ? h : y;
+				s.ymx = s.ymn + 14;
+				anno_start(s)
 			}
 			/*fixme: cf left shift (-5)*/
-			write_tempo(g, s.x - 5, (dosh & 1) ? h : y, 1);
-			anno_stop(g);
-//			g.del = true;
+			write_tempo(s, s.x - 5, (dosh & 1) ? h : y);
+			anno_stop(s);
 			dosh >>= 1
 		}
 	}
@@ -1847,13 +1838,7 @@ function draw_partempo(st, top) {
 /*fixme: should reduce vertical space if parts don't overlap tempo...*/
 	ymin = staff_tb[st].topbar + 14
 	for (s = tsfirst; s; s = s.ts_next) {
-		g = s.extra
-		if (!g)
-			continue
-		for (; g; g = g.next)
-			if (g.type == PART)
-				break
-		if (!g)
+		if (s.type != PART)
 			continue
 		if (!some_part) {
 			some_part = s;
@@ -1861,7 +1846,7 @@ function draw_partempo(st, top) {
 			h = gene.curfont.size + 2 + 2
 						/* + cfmt.partsspace ?? */
 		}
-		w = strw(g.text);
+		w = strw(s.text);
 		y = y_get(st, true, s.x - 10, w + 15) + 5
 		if (ymin < y)
 			ymin = y
@@ -1871,28 +1856,22 @@ function draw_partempo(st, top) {
 			dy = ymin + h + ht - top
 
 		for (s = some_part; s; s = s.ts_next) {
-			g = s.extra
-			if (!g)
+			if (s.type != PART)
 				continue
-			for (; g; g = g.next)
-				if (g.type == PART)
-					break
-			if (!g)
-				continue
+			s.x -= 10;
 			if (user.anno_start || user.anno_stop) {
-				g.x = s.x - 9;
-				w = strw(g.text);
-				g.wl = 0;
-				g.wr = w;
-				g.ymn = -ht - h;
-				g.ymx = g.ymn + h;
-				anno_start(g)
+				w = strw(s.text);
+				s.wl = 0;
+				s.wr = w;
+				s.ymn = -ht - h;
+				s.ymx = s.ymn + h;
+				anno_start(s)
 			}
 			if (cfmt.partsbox)
-				xy_str_b(s.x - 10, 2 - ht - h, g.text)
+				xy_str_b(s.x, 2 - ht - h, s.text)
 			else
-				xy_str(s.x - 10, 2 - ht - h, g.text)
-			anno_stop(g)
+				xy_str(s.x, 2 - ht - h, s.text)
+			anno_stop(s)
 		}
 	}
 	return dy
