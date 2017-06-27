@@ -2,8 +2,7 @@
 @page {margin-top: 1cm; margin-left: 0cm; margin-right: 0cm}
 text tspan {white-space:pre; fill:currentColor}
 svg {display:block}
-.abcr {fill:#a08000; fill-opacity:0; z-index: 15}
-.abcr:hover {fill-opacity:0.3}
+.abcr {fill: #d00000; fill-opacity: 0; z-index: 15}
 @media screen {
 	body, html {height: 90%}
 	text, path {pointer-events: none}

@@ -6,7 +6,21 @@
 // published by the Free Software Foundation.
 
 // AbcPlay creation
-function AbcPlay(i_onend, i_instr_dir) {
+//
+// @i_onend: callback function called at end of playing
+//		(no arguments)
+// @sf: soundfont. Either an object {url, type}
+//		or a string (URL, the type is forced to "js")
+//	When the type is "js", the URL is the directory containing
+//		the  <instrument>-ogg.js files of midi-js
+//	When the type is "mp3" (I could not find "ogg" files)
+//		the URL is the directory containing
+//		the <instrument>-<type>. directories
+// @i_onnote: callback function called on note start/stop playing
+//	Arguments:
+//		i: start index of the note in the ABC source
+//		on: true on note start, false on note stop
+function AbcPlay(i_onend, sf, i_onnote) {
 
 	// constants from Abc
 	const	BAR = 0,
@@ -147,7 +161,7 @@ function AbcPlay(i_onend, i_instr_dir) {
 			"applause",
 			"gunshot"],
 
-		scale = [0, 2, 4, 5, 7, 9, 11],	// note to pitch
+		scale = [0, 2, 4, 5, 7, 9, 11],	// note to pitch conversion
 
 		// note to name and note to octave
 		nn =	["C", "Db", "D",  "Eb", "E",  "F",
@@ -160,9 +174,15 @@ function AbcPlay(i_onend, i_instr_dir) {
 		gain,			// global gain
 		gain_val = 0.7,
 		a_e,			// event array
+		onnote = i_onnote,	// callback function on note start/stop
+		follow,			// follow the music
 
 	// instruments/notes
-		instr_dir = i_instr_dir, // instrument base URL
+		sfu =			// soundfont default URL
+"https://raw.githubusercontent.com/gleitz/midi-js-soundfonts/gh-pages/FluidR3_GM",
+		sft = "js",		// soundfont type:
+					// - "js" midi-js with encoded data structure
+					// - "mp3" midi-js mp3 samples
 		sounds = [],		// [instr][mi] decoded notes per instrument
 		w_instr = 0,		// number of instruments being loaded
 		note_q = [],		// [instr, note] to be decoded
@@ -186,52 +206,85 @@ function AbcPlay(i_onend, i_instr_dir) {
 		}
 	} // key2mid()
 
-	// sound end playing
-	function o_end(s) {
-		s.disconnect()
-//fixme: is this needed??
-		delete s
-	} // o_end()
-
 	function decode_note(instr, mi) {
-		var snd, p
 
 		// convert data URI to binary
 		function data2bin(dataURI) {
-			var	base64Index = dataURI.indexOf(',') + 1,
+			var	i,
+				base64Index = dataURI.indexOf(',') + 1,
 				base64 = dataURI.substring(base64Index),
 				raw = window.atob(base64),
-				rawLength = raw.length,
-				ab = new ArrayBuffer(rawLength),
+				rawl = raw.length,
+				ab = new ArrayBuffer(rawl),
 				array = new Uint8Array(ab)
 
-			for (i = 0; i < rawLength; i++)
+			for (i = 0; i < rawl; i++)
 				array[i] = raw.charCodeAt(i)
 			return ab
 		} // data2bin()
 
-		w_note++;
-		p = nn[mi % 12] + no[(mi / 12) | 0];
-		snd = data2bin(MIDI.Soundfont[instr_tb[instr]][p]);
-		ac.decodeAudioData(snd,
+		function audio_dcod(snd) {
+			ac.decodeAudioData(snd,
 				function(b) {
 					sounds[instr][mi] = b;
 					w_note--
 				},
 				function(e) {
-					alert("Decod audio data err " +
-						e.err)
+					alert("Decode audio data error " +
+						(e ? e.err : "???"));
+					w_note--;
+					iend = 0
+					if (onend)
+						onend()
 				})
+		} // audio_dcod()
+
+		// decode_note() main
+		w_note++
+		var p = nn[mi % 12] + no[(mi / 12) | 0]
+
+		if (sft == 'js') {
+			audio_dcod(data2bin(MIDI.Soundfont[instr_tb[instr]][p]))
+		} else {
+			var	url = sfu + '/' + instr_tb[instr] + '-' +
+					sft + '/' + p + '.' + sft,
+				req = new XMLHttpRequest();
+
+			req.open('GET', url);
+//// does not work with some browsers
+//			req.responseType = 'arraybuffer';
+//			req.onload = function() {
+//				audio_dcod(this.response)
+//			}
+			req.overrideMimeType(
+				"application/octet-stream; charset=x-user-defined");
+			req.onload = function() {
+				var	l = this.responseText.length,
+					a = new ArrayBuffer(l),
+					b = new Uint8Array(a)
+
+				for (var i = 0; i < l; i++)
+					b[i] = this.responseText.charCodeAt(i) & 0xff;
+				audio_dcod(a)
+			}
+			req.onerror = function() {
+				alert('Error while loading\n' + url);
+				w_note--;
+				iend = 0
+				if (onend)
+					onend()
+			}
+			req.send()
+		}
 	} // decode_note()
 
-	// load an instrument
+	// load an instrument (.js file)
 	function load_instr(instr) {
-		var req, url, script;
-
-		w_instr++;
-
-		url = instr_dir + instr_tb[instr] + '-ogg.js';
-		script = document.createElement('script');
+		if (sft != 'js')
+			return
+		w_instr++
+		var	url = sfu + '/' + instr_tb[instr] + '-ogg.js',
+			script = document.createElement('script');
 		script.src = url;
 		script.onload = function() {
 			w_instr--
@@ -251,38 +304,49 @@ function AbcPlay(i_onend, i_instr_dir) {
 				onend()
 			return
 		}
-//fixme: better count the number of events?
-		maxt = e[1] + 4			// max time = evt time + 4 seconds
+//fixme: better, count the number of events?
+		maxt = e[1] + 3			// max time = evt time + 3 seconds
 		do {
 			o = ac.createBufferSource();
 			o.buffer = sounds[e[2]][e[3]];
-			o.onended = function() { o_end(s) }
 			o.connect(gain);
-			o.start(e[1] + stime, 0, e[4]);
+// if not a percussion instrument,
+//  o.loop = true
+//  o.loopStart = 3 // (for sample 4s)
+			o.start(e[1] + stime, 0, e[4])
+
+			if (follow && onnote) {
+				var	st = (e[1] + stime - ac.currentTime) * 1000,
+					i = e[0];
+				setTimeout(onnote, st, i, true);
+				setTimeout(onnote, st + e[4] * 1000, i, false)
+			}
 
 			t = e[1];		// event time
 			e = a_e[++evt_idx]
 		} while (e && e[1] <= maxt)
 
 		setTimeout(play_next, (t + stime - ac.currentTime)
-				* 1000 - 200)	// wake before end of playing
+				* 1000 - 300)	// wake before end of playing
 	} // play_next()
 
 	// wait for all resources, then start playing
 	function play_start() {
-		var e
-
 		if (iend == 0)		// play stop
 			return
+
+		// wait for instruments
 		if (w_instr != 0) {
 			setTimeout(function() {	// wait for all instruments
 				play_start()
 			}, 300)
 			return
 		}
+
+		// wait for notes
 		if (note_q.length != 0) {
 			while (1) {
-				e = note_q.shift()
+				var e = note_q.shift()
 				if (!e)
 					break
 				decode_note(e[0], e[1])
@@ -326,13 +390,45 @@ function AbcPlay(i_onend, i_instr_dir) {
 		iend = 0
 	} // stop()
 
-	// set global volume
-	this.set_g_vol = function(v) {
+	// get soundfont type
+	this.get_sft = function() {
+		return sft
+	} // get_sft()
+
+	// get soundfont URL
+	this.get_sfu = function() {
+		return sfu
+	} // get_sft()
+
+	// get volume
+	this.get_vol = function(v) {
+		if (gain)
+			return gain.gain.value
+		return gain_val
+	} // get_vol()
+
+	// set soundfont type
+	this.set_sft = function(v) {
+		sft = v
+	} // set_sft()
+
+	// set soundfont URL
+	this.set_sfu = function(v) {
+		sfu = v
+	} // set_sft()
+
+	// set volume
+	this.set_vol = function(v) {
 		if (gain)
 			gain.gain.value = v
 		else
 			gain_val = v
-	} // set_g_vol()
+	} // set_vol()
+
+	// set 'follow music'
+	this.set_follow = function(v) {
+		follow = v
+	} // set_follow()
 
 	// -- generation of the playing events --
 	var	p_time,				// last playing time
@@ -346,7 +442,7 @@ function AbcPlay(i_onend, i_instr_dir) {
 		return a_pe
 	} // this.clear()
 
-	// add playing events from the schema
+	// add playing events from the ABC model
 	this.add = function(s,			// starting symbol
 			    voice_tb) {		// voice table
 		var	bmap = [],		// measure base map
@@ -422,7 +518,7 @@ function AbcPlay(i_onend, i_instr_dir) {
 				map[p] = a == 3 ? 0 : a; // (3 = natural)
 			oct = (p / 7) | 0;
 			p = scale[p % 7] + map[p]
-			if (p > 12) {
+			if (p >= 12) {
 				p -= 12;
 				oct++
 			} else if (p < 0) {
@@ -531,7 +627,7 @@ function AbcPlay(i_onend, i_instr_dir) {
 			}
 		} // gen_note()
 
-		// -- this.add() --
+		// add() main
 		if (!ac) {
 			ac = new (window.AudioContext || window.webkitAudioContext);
 			gain = ac.createGain();
@@ -546,8 +642,8 @@ function AbcPlay(i_onend, i_instr_dir) {
 			a_e = []
 			abc_time = rep_st_t =
 				p_time =
-					rep_st_i = rep_en_i = 0;
-			play_factor = BASE_LEN / 4 * 80 / 60	// default: Q:1/4=80
+				rep_st_i = rep_en_i = 0;
+			play_factor = BASE_LEN / 4 * 120 / 60	// default: Q:1/4=120
 		} else if (s.time < abc_time) {
 			abc_time = rep_st_t = s.time
 		}
@@ -631,9 +727,25 @@ function AbcPlay(i_onend, i_instr_dir) {
 			}
 			s = s.ts_next
 		}
-	} // this.add()
+	} // add()
 
 	// AbcPlay object creation
-	sounds[0] = [];			// default: acoustic grand piano
+	if (sf) {
+		if (typeof(sf) === 'object') {
+			if (sf.url)
+				sfu = sf.url
+			if (sf.type)
+				sft = sf.type
+		} else {
+			sfu = sf;
+			sft = "js"
+		}
+	}
+
+	if (typeof(MIDI) == "object")
+		sounds[0] = []		// default: acoustic grand piano
+	else
+		MIDI = {}
 	key2mid()
+
 } // end AbcPlay

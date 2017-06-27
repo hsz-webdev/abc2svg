@@ -1,3 +1,106 @@
+---- Version 1.12.12 - 2017-06-27 ----
+
+. fixes
+	Loss of end of music line on bar when followed by %%score
+			since 1.12.10
+	Do %%transpose work again
+	Various typos/bugs found with "use strict"
+. internal changes
+	Define "use strict" in the ABC object
+		(asked by Alexandre Hassler)
+
+---- Version 1.12.11 - 2017-06-23 ----
+
+. fixes
+	Bad voice alignment when tune starting with Q:
+		(reported by Gerhard Schacherl)
+	Bad handling of 'auto' in %%pos
+		(reported by David Lacroix)
+	Crash when !8(! at start of line
+		(reported by Willem Vree)
+
+---- Version 1.12.10 - 2017-06-21 ----
+
+. fixes
+	Bad SVG output when tune starting with "%%score 1 | %%score 1"
+	Don't display %%ottava indications on secondary voices
+		(reported by Willem Vree)
+	Too much horizontal space before %%score
+	Loss of measure bar when followed by %%score and voice absent
+		(reported by Simon Wascher)
+	Handle empty K: as K:none
+	Bad tune skip with %%select
+	Don't cut a music line in a tuplet sequence
+	Crash when tuplet sequence on 2 music lines
+		(reported by Bernhard Weichel)
+	The soundfont type could not be changed in the editor
+		(patch from Gerhard Schacherl)
+	Play error of _B notes
+		(patch from Christophe Poudras)
+. changes
+	Set 120 as the default playing tempo instead of 80 in the editor
+
+---- Version 1.12.9 - 2017-06-05 ----
+
+. fixes
+	Some problems in the playing engine
+	Abnormal fullname of voice in music line with first voice overlay
+		(reported by Gerhard Schacherl)
+	Lack of 'Stop' label when playing active in the editor
+	Crash when twice a same voice in %%score inside tune
+	Abnormal meter in 2nd music line when no starting meter and
+		meter defined inside the 1st music line
+. changes
+	Remove <title> from SVG images
+	Add play preferences in the editor menu
+	Add note highlighting while playing in the editor
+		(code adapted from a patch submitted by Mark Zealey)
+	New highlighting and selection mechanisms in the editor
+	Handle %%MIDI program range [0..127] instead of [1..128]
+		(asked in the ABC mailing list)
+	Direct use of .mp3 notes of gleitz/midi-js-soundfonts
+			for playing when mp3 is available in the browser
+		(code adapted from a patch submitted by Mark Zealey)
+	Remove the acoustic grand piano from tarball and play-1.js
+		(asked by Mark Zealey)
+
+---- Version 1.12.8 - 2017-05-18 ----
+
+. fixes
+	Bad horizontal offset of end of repeat bracket on !rbend!
+	Crash when measure numbering and bad measure durations
+		(reported by Bernhard Weichel)
+. changes
+	Avoid to raise the repeat brackets when followed
+			by a symbol with a chord indication
+
+---- Version 1.12.7 - 2017-05-04 ----
+
+. fixes
+	Bad handling of "stem=" in K:/V:
+	Loss of voices when T: / %%text / ... in multi-voice tunes
+	Crash when no note in voice overlay
+	Crash when repeat sequences and no printed text yet
+. changes
+	Fix some error translations
+	Raise the breath marks when after high notes
+	Cleanup the parsing code
+
+---- Version 1.12.6 - 2017-04-26 ----
+
+. fixes
+	Loss of ties from grace notes since 1.12.0
+	Lack of beams in tremolo on whole notes
+	Bad SVG output when staccato (.) on a rest
+		(reported by Bernhard Weichel)
+. new features
+	Handle the macros (m:)
+. changes
+	Better printed tempo (Q:)
+. internal changes
+	Remove some dead code and optimize parsing
+	Simplify some error messages and update the translations
+
 ---- Version 1.12.5 - 2017-04-21 ----
 
 . fixes

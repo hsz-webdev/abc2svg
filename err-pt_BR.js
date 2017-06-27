@@ -63,13 +63,7 @@ user.textrans = {
 	"Bad user character '$1'": "Caractere ilegal '$1' em U:/%%user",
 	"Bad value '$1' in %%linebreak - ignored":
 				"Valor incorreto '$1' em %%linebreak - ignorado",
-	"Bad value for %%$1": "Valor incorreto para %%$1",
-	"Bad value for %%microscale": "Valor incorreto para %%microscale",
-	"Bad value for %%ottava": "Valor incorreto para %%ottava",
-	"Bad value for %%notespacingfactor":
-				"Valor incorreto para %%notespacingfactor",
-	"Bad value for %%voicecombine": "Valor incorreto para %%voicecombine",
-	"Bad value for %%voicescale": "Valor incorreto para %%voicescale",
+	"Bad value in $1": "Valor incorreto em $1",
 	"Bad voice ID in %%staves": "Identificador de voz incorreto em %%staves",
 	"Bar in repeat sequence": "Barra de compasso em um fragmento %%repeat",
 	"Cannot have !$1! on a head": "!$1! não pode estar em cabeça de nota",
@@ -95,12 +89,7 @@ user.textrans = {
 		"Problema de quebra de linha - ajuste maxshrink e/ou breaklimit",
 	"Line too much shrunk $1 $2 $3": "Linha muito encolhida $1 $2 $3",
 	"Line underfull ($1pt of $2pt)": "Linha muito espaçada ($1pt de $2pt)",
-	"Misplaced '[' in %%staves": "'[' deslocado em %%staves",
-	"Misplaced '{' in %%staves": "'{' deslocado em %%staves",
-	"Misplaced '(' in %%staves": "'(' deslocado em %%staves",
-	"Misplaced ']' in %%staves": "']' deslocado em %%staves",
-	"Misplaced '}' in %%staves": "'}' deslocado em %%staves",
-	"Misplaced ')' in %%staves": "')' deslocado em %%staves",
+	"Misplaced '$1' in %%staves": "'$1' deslocado em %%staves",
 	"Misplaced dot": "Ponto fora de lugar",
 	"No $1 after %%$2": "Falta $1 após %%$2",
 	"No </defs> in %%beginsvg sequence":
@@ -113,17 +102,19 @@ user.textrans = {
 	"No end of guitar chord": "Acorde cifrado sem término",
 	"No end of repeat string": "Cadeia de repetição não terminada",
 	"No end of tuplet": "Quiáltera incompleta",
+	"No end of tuplet in this music line":
+				"No end of tuplet in this music line",
 	"No function for decoration '$1'": "Falta função para decoração '$1'",
 	"No note before '-'": "Falta nota antes de '-'",
 	"No note before '<'": "Falta nota antes de '<'",
-	"No note before start of voice overlay":
-				"Falta nota antes de superposição de vozes",
+	"No note in voice overlay":
+				"Falta nota em superposição de vozes",
 	"No read_file support": "A função read_file não existe",
 	"No start of !$1!": "Falta início de !$1!",
 	"Not a note in grace note sequence":
 				"Caractere inválido em grupo de notinhas ornamentais",
 	"Not an ASCII character": "Não é um caractere ASCII",
-	"Not enough bar lines for lyric line":
+	"Not enough measure bars for lyric line":
 				"Faltam barras de compasso para linha de palavras",
 	"Not enough measures for %%repeat": "Faltam compassos para %%repeat",
 	"Not enough parameters in %%map":

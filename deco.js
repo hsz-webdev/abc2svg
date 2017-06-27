@@ -10,7 +10,6 @@ var	dd_tb= {},		// table of decoration definitions
 	a_de = []		// array of the decoration elements
 
 // standard decorations
-//fixme: could be an object
 const std_deco = {
 	dot: "0 stc 5 1 1",
 	tenuto: "0 emb 5 2 2",
@@ -22,7 +21,7 @@ const std_deco = {
 	lowermordent: "3 lmrd 10 2 2",
 	coda: "3 coda 24 10 10",
 	uppermordent: "3 umrd 10 2 2",
-	segno: "3 sgno 20 4 4",
+	segno: "3 sgno 20 8 8",
 	trill: "3 trl 14 4 4",
 	upbow: "3 upb 10 5 5",
 	downbow: "3 dnb 9 5 5",
@@ -203,25 +202,27 @@ function d_arp(de) {
 	var	m, h, dx,
 		s = de.s,
 		dd = de.dd,
-		xc = 0
+		xc = 5
 
-	for (m = 0; m <= s.nhd; m++) {
-		if (s.notes[m].acc) {
-			dx = 5 + s.notes[m].shac
-		} else {
-			dx = 6 - s.notes[m].shhd
-			switch (s.head) {
-			case SQUARE:
-				dx += 3.5
-				break
-			case OVALBARS:
-			case OVAL:
-				dx += 2
-				break
+	if (s.type == NOTE) {
+		for (m = 0; m <= s.nhd; m++) {
+			if (s.notes[m].acc) {
+				dx = 5 + s.notes[m].shac
+			} else {
+				dx = 6 - s.notes[m].shhd
+				switch (s.head) {
+				case SQUARE:
+					dx += 3.5
+					break
+				case OVALBARS:
+				case OVAL:
+					dx += 2
+					break
+				}
 			}
+			if (dx > xc)
+				xc = dx
 		}
-		if (dx > xc)
-			xc = dx
 	}
 	h = 3 * (s.notes[s.nhd].pit - s.notes[0].pit) + 4;
 	m = dd.h			/* minimum height */
@@ -329,8 +330,10 @@ function d_near(de) {
 		s.ymx = y + dd.h
 	else
 		s.ymn = y;
-	de.y = y;
-	de.x = s.x + s.notes[s.stem >= 0 ? 0 : s.nhd].shhd
+	de.y = y
+//	de.x = s.x + s.notes[s.stem >= 0 ? 0 : s.nhd].shhd
+	if (s.type == NOTE)
+		de.x += s.notes[s.stem >= 0 ? 0 : s.nhd].shhd
 	if (dd.name[0] == 'd'			/* if dot decoration */
 	 && s.nflags >= -1) {			/* on stem */
 		if (up) {
@@ -525,6 +528,10 @@ function d_upstaff(de) {
 	case "mphr":
 	case "sphr":
 		yc = stafft + 1
+		if (dd.glyph == "brth") {
+			if (yc < s.ymx)
+				yc = s.ymx
+		}
 		for (s = s.ts_next; s; s = s.ts_next)
 			if (s.shrink)
 				break
@@ -584,7 +591,7 @@ function deco_add(param) {
 
 // return the decoration
 function deco_build(nm, text) {
-	var dd, dd2, c, i, elts, str
+	var a, dd, dd2, name2, c, i, elts, str
 
 	// extract the values
 	a = text.match(/(\d+)\s+(.+?)\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)/)
@@ -1081,24 +1088,9 @@ function draw_deco_near() {
 		}
 	} // create_deco()
 
-	// create all decoration of a note (chord and heads)
-	function create_all(s) {
-		var m
-
-		if (s.a_dd)
-			create_deco(s)
-		if (s.notes) {
-			for (m = 0; m < s.notes.length; m++) {
-				if (s.notes[m].a_dcn)
-					create_dh(s, m)
-			}
-		}
-	} // create_all()
-
 	// create the decorations of note heads
 	function create_dh(s, m) {
-		var	f, str, de, uf,
-			dcn, dd,
+		var	f, str, de, uf, k, dcn, dd,
 			note = s.notes[m]
 
 		for (k = 0; k < note.a_dcn.length; k++) {
@@ -1149,9 +1141,23 @@ function draw_deco_near() {
 		}
 	} // create_dh()
 
+	// create all decoration of a note (chord and heads)
+	function create_all(s) {
+		var m
+
+		if (s.a_dd)
+			create_deco(s)
+		if (s.notes) {
+			for (m = 0; m < s.notes.length; m++) {
+				if (s.notes[m].a_dcn)
+					create_dh(s, m)
+			}
+		}
+	} // create_all()
+
 	// link the long decorations
 	function ll_deco() {
-		var	i, j, de, dd, dd2, v, s, st,
+		var	i, j, de, de2, dd, dd2, v, s, st,
 			n_de = a_de.length
 
 		// add ending decorations
@@ -1273,7 +1279,7 @@ function draw_deco_note() {
 /* (unscaled delayed output) */
 function draw_deco_staff() {
 	var	s, first_gchord, p_voice, x, y, w, i, n, v, de, dd,
-		gch, gch2, ix,
+		gch, gch2, ix, top, bot,
 		minmax = new Array(nstaff)
 
 	/* draw the repeat brackets */
@@ -1290,8 +1296,10 @@ function draw_deco_staff() {
 /*fixme: line cut on repeat!*/
 			if (!s.next)
 				break
-			if (!first_repeat)
+			if (!first_repeat) {
 				first_repeat = s;
+				set_font("repeat")
+			}
 			s1 = s
 			for (;;) {
 				if (!s.next)
@@ -1321,7 +1329,6 @@ function draw_deco_staff() {
 		if (!s)
 			return
 		set_dscale(p_voice.st, true);
-		set_font("repeat");
 		y2 =  y * staff_tb[p_voice.st].staffscale
 		for ( ; s; s = s.next) {
 			if (!s.rbstart || s.norepbra)
@@ -1336,7 +1343,7 @@ function draw_deco_staff() {
 			}
 			if (s1 == s)
 				break
-			x = s1.x;
+			x = s1.x
 //			if (s1.bar_type[0] == ":")
 //				x -= 4;
 			if (s.type != BAR) {
@@ -1348,18 +1355,17 @@ function draw_deco_staff() {
 //					s.invis = true
 //fixme:%%staves: cur_sy moved?
 				if (s1.st > 0
-				 && !(cur_sy.staves[s1.st - 1].flags & STOP_BAR)) {
+				 && !(cur_sy.staves[s1.st - 1].flags & STOP_BAR))
 					w = s.wl
-				} else if (s.bar_type.slice(-1) == ':') {
+				else if (s.bar_type.slice(-1) == ':')
 					w = 12
-				} else if (s.bar_type[0] != ':'
-					|| s.bar_type == "]") {
+				else if (s.bar_type[0] != ':')
+//				      || s.bar_type == "]")
 					w = 0		/* explicit repeat end */
-				} else {
+				else
 					w = 8
-				}
 			} else {
-				w = 8
+				w = s.rbstop ? 0 : 8
 			}
 			w = (s.x - x - w)	// / staff_tb[p_voice.st].staffscale;
 
@@ -1428,11 +1434,11 @@ function draw_deco_staff() {
 	/* draw the chord indications if any */
 	if (first_gchord) {
 		for (i = 0; i <= nstaff; i++) {
-			var bot = staff_tb[i].botbar;
+			bot = staff_tb[i].botbar;
 			minmax[i].ymin -= 3
 			if (minmax[i].ymin > bot - 10)
 				minmax[i].ymin = bot - 10
-			var top = staff_tb[i].topbar;
+			top = staff_tb[i].topbar;
 			minmax[i].ymax += 3
 			if (minmax[i].ymax < top + 10)
 				minmax[i].ymax = top + 10
@@ -1526,14 +1532,13 @@ function draw_measnb() {
 	var	s, st, bar_num, x, y, w, any_nb, font_size,
 		sy = cur_sy
 
-	/* search the first staff */
+	/* search the top staff */
 	for (st = 0; st <= nstaff; st++) {
-		if (!sy.staves[st].empty)
+		if (sy.st_print[st])
 			break
 	}
 	if (st > nstaff)
 		return				/* no visible staff */
-//	output = staff_tb[st].output
 	set_dscale(st)
 
 	/* leave the measure numbers as unscaled */
@@ -1567,7 +1572,7 @@ function draw_measnb() {
 			}
 			while (s.st != st)
 				s = s.ts_next
-			if (s.prev.type != CLEF)
+			if (s.prev && s.prev.type != CLEF)
 				s = s.prev;
 			x = s.x - s.wl;
 			any_nb = true;
@@ -1597,7 +1602,7 @@ function draw_measnb() {
 		case STAVES:
 			sy = sy.next
 			for (st = 0; st < nstaff; st++) {
-				if (!sy.staves[st].empty)
+				if (sy.st_print[st])
 					break
 			}
 			set_sscale(st)
@@ -1672,7 +1677,7 @@ function draw_notempo(s, x, y, dur, sc) {
 //	out_sxsy(x + 8, ',', y + 3);
 //	output.push(') scale(' + sc + ')">\n')
 	out_XYAB('<g transform="translate(X,Y) scale(F)">\n',
-		x + 8, y + 3, sc)
+		x + 4, y + 2, sc)
 	switch (head) {
 	case OVAL:
 		p = "HD"
@@ -1687,7 +1692,7 @@ function draw_notempo(s, x, y, dur, sc) {
 	xygl(-posx, posy, p);
 	dx = 4
 	if (dots) {
-		dotx = 8
+		dotx = 9
 		if (nflags > 0)
 			dotx += 4
 		switch (head) {
@@ -1742,22 +1747,21 @@ function tempo_width(s) {
 /* - output a tempo --*/
 function write_tempo(s, x, y) {
 	var	j, dx,
-		sc = .5 * gene.curfont.size / 15.0; //fixme: 15.0 = initial tempofont
+		sc = .6 * gene.curfont.size / 15.0; //fixme: 15.0 = initial tempofont
 
 	set_font("tempo")
 	if (s.tempo_str1) {
 		xy_str(x, y, s.tempo_str1);
-		x += strw(s.tempo_str1) + 6
+		x += strw(s.tempo_str1) + 3
 	}
 	if (s.tempo_notes) {
 		for (j = 0; j < s.tempo_notes.length; j++)
 			x += draw_notempo(s, x, y, s.tempo_notes[j], sc);
-		x += 5;
 		xy_str(x, y, "=");
-		x += strw("= ") + 5
+		x += strw("= ")
 		if (s.tempo_ca) {
 			xy_str(x, y, s.tempo_ca);
-			x += strw(s.tempo_ca) + 5
+			x += strw(s.tempo_ca) //+ 5
 		}
 		if (s.tempo) {
 			xy_str(x, y, s.tempo.toString());

@@ -1,5 +1,6 @@
-//JS abc2svg - french translation of the error codes:
-//				traduction des codes d'erreur en français
+//JS abc2svg - french translation of the error codes
+//	traduction des codes d'erreur en français
+//	par Jean-François Moine
 // Appelez ce fichier dans la ligne de commande pour avoir
 // les messages d'erreur en français
 
@@ -16,7 +17,7 @@ user.textrans = {
 	"$1: inside tune - ignored": "$1: en milieu de morceau - ignoré",
 	"!$1! must be on a note": "!$1! doit être sur une note",
 	"!$1! must be on a note or a rest":
-				"!$1! doit être sur une note ou un soupir",
+				"!$1! doit être sur une note ou un silence",
 	"!$1! must be on the last of a couple of notes":
 				"!$1! doit être sur la 2ème note d'un couple",
 	"!beamon! must be on a bar": "!beamon! doit être sur une barre",
@@ -36,7 +37,7 @@ user.textrans = {
 	"%%staffwidth too big": "%%staffwidth trop grand",
 	"%%tune not treated yet": "%%tune n'est pas encore traité",
 	"%%voice ignored": "%%voice ignoré",
-	"%%vskip cannot be negative": "%%vskip ne peut pas être negatif",
+	"%%vskip cannot be negative": "%%vskip ne peut pas être négatif",
 	"Bad !xstem!": "!xstem! erroné",
 	"Bad %%setbarnb value": "Valeur incorrecte dans %%setbarnb",
 	"Bad %%staff number $1 (cur $2, max $3)":
@@ -62,13 +63,7 @@ user.textrans = {
 	"Bad user character '$1'": "Caractère illégal '$1' dans U:/%%user",
 	"Bad value '$1' in %%linebreak - ignored":
 				"Valeur incorrecte '$1' dans %%linebreak - ignorée",
-	"Bad value for %%$1": "Mauvaise valeur pour %%$1",
-	"Bad value for %%microscale": "Mauvaise valeur pour %%microscale",
-	"Bad value for %%notespacingfactor":
-				"Mauvaise valeur pour %%notespacingfactor",
-	"Bad value for %%ottava": "Mauvaise valeur de %%ottava",
-	"Bad value for %%voicecombine": "Mauvaise valeur pour %%voicecombine",
-	"Bad value for %%voicescale": "Mauvaise valeur pour %%voicescale",
+	"Bad value in $1": "Mauvaise valeur dans $1",
 	"Bad voice ID in %%staves": "Mauvaise identité de voix dans %%staves",
 	"Bar in repeat sequence": "Barre dans la séquence à répéter",
 	"Cannot have !$1! on a head": "!$1! ne peut pas être sur une tête de note",
@@ -94,35 +89,31 @@ user.textrans = {
 		"Problème de découpe en lignes - ajuster maxshrink et/ou breaklimit",
 	"Line too much shrunk $1 $2 $3": "Ligne trop compressée $1 $2 $3",
 	"Line underfull ($1pt of $2pt)": "Trop d'espacement ($1pt of $2pt)",
-	"Misplaced '[' in %%staves": "'[' mal placé dans %%staves",
-	"Misplaced '{' in %%staves": "'{' mal placé dans %%staves",
-	"Misplaced '(' in %%staves": "'(' mal placé dans %%staves",
-	"Misplaced ']' in %%staves": "']' mal placé dans %%staves",
-	"Misplaced '}' in %%staves": "'}' mal placé dans %%staves",
-	"Misplaced ')' in %%staves": "')' mal placé dans %%staves",
+	"Misplaced '$1' in %%staves": "'$1' mal placé dans %%staves",
 	"Misplaced dot": "Point mal placé",
 	"No $1 after %%$2": "Pas de $1 après %%$2",
 	"No </defs> in %%beginsvg sequence":
-				"Pas de  </defs> dans séquence %%beginsvg",
+				"Pas de </defs> dans séquence %%beginsvg",
 	"No </style> in %%beginsvg sequence":
 				"Pas de </style> dans séquence %%beginsvg",
 	"No accidental after 'exp'": "Pas d'altération après 'exp'",
 	"No end of decoration": "Pas de fin de décoration",
 	"No end of grace note sequence": "Pas de fin de notes d'agrément",
-	"No end of guitar chord": "Pas de fin d'accord de guitare",
+	"No end of guitar chord": "Pas de fin d'indication d'accord",
 	"No end of repeat string": "Chaine de répétition non terminée",
 	"No end of tuplet": "Pas de fin de tuplet",
-	"No function for decoration '$1'": "Pas de fonction pour decoration '$1'",
+	"No end of tuplet in this music line":
+				"Pas de fin de tuplet dans cette ligne de musique",
+	"No function for decoration '$1'": "Pas de fonction pour décoration '$1'",
 	"No note before '-'": "Pas de note devant '-'",
 	"No note before '<'": "Pas de note devant '<'",
-	"No note before start of voice overlay":
-				"Pas de note avant voix superposée",
+	"No note in voice overlay": "Pas de note dans voix superposée",
 	"No read_file support": "La fonction read_file n'existe pas",
 	"No start of !$1!": "Pas de début pour !$1!",
 	"Not a note in grace note sequence":
 				"Caractère incorrect dans notes d'agrément",
 	"Not an ASCII character": "Ce n'est pas un caractère ASCII",
-	"Not enough bar lines for lyric line":
+	"Not enough measure bars for lyric line":
 				"Pas assez de barres pour la ligne de paroles",
 	"Not enough measures for %%repeat":
 				"Pas assez de mesures pour %%repeat",

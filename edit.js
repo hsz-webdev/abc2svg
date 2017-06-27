@@ -7,6 +7,7 @@ var	abc_images,			// image buffer
 	abcplay,			// play engine
 	a_pe,				// playing events
 	playing,
+	selrec = {},
 	texts = {			// language specific texts
 		bad_nb: 'Bad line number',
 		fn: 'File name: ',
@@ -45,22 +46,13 @@ var user = {
 	},
 	// -- optional methods
 	// annotations
-	anno_start: function(type, start, stop, x, y, w, h) {
-		if (ignore_types[type])
-			return
-		stop -= start;
-		// keep the source reference
-		ref.push([start, stop]);
-		// create a container for the music element
-		abc.out_svg('<g class="e_' + start + '_' + stop + '_">\n')
-	},
 	anno_stop: function(type, start, stop, x, y, w, h) {
 		if (ignore_types[type])
 			return
-		// close the container
-		abc.out_svg('</g>\n');
+		ref[start] = stop;		// keep the source reference
+
 		// create a rectangle
-		abc.out_svg('<rect class="abcr _' + start + '_' + (stop - start) +
+		abc.out_svg('<rect class="abcr _' + start +
 			'_" x="');
 		abc.out_sxsy(x, '" y="', y);
 		abc.out_svg('" width="' + w.toFixed(2) +
@@ -160,7 +152,7 @@ function render() {
 	user.img_out = user.my_img_out;
 	abc = new Abc(user);
 	abc_images = '';
-//	abc.tosvg('edit', '%%bgcolor white');
+	abc.tosvg('edit', '%%bgcolor white');
 
 	diverr.innerHTML = '';
 //	document.body.style.cursor = "wait";
@@ -184,16 +176,20 @@ function render() {
 	document.getElementById("er").style.display =
 				diverr.innerHTML ? 'inline' : 'none';
 
-	// set callbacks on all abc rectangles
+	// set the callbacks in the SVG images
 	setTimeout(function(){
-		var	elts = document.getElementsByClassName('abcr'),
+		var	elts = target.getElementsByClassName('abcr'),
 			i = elts.length,
 			elt
 		while (--i >= 0) {
 			elt = elts[i];
-			elt.onclick = function() {selabc(this)}
 			elt.onmouseover = function() {m_over(this)}
-			elt.onmouseout = function() {m_out(this)}
+		}
+		elts = target.getElementsByTagName("svg");
+		i = elts.length
+		while (--i >= 0) {
+			elt = elts[i];
+			elt.onmousedown = function(e) {svgsel(e, this)}
 		}
 	}, 300)
 }
@@ -216,54 +212,127 @@ function gotoabc(l, c) {
 	s.setSelectionRange(c, c + 1)
 }
 
-function setcolor(cl, color) {
-	var	elts = document.getElementsByClassName(cl),
-		i = elts.length,
-		elt
-	while (--i >= 0) {
-		elt = elts[i];
-		elt.setAttribute("color", color)
+// highlight the music element on mouse over
+function m_over(elt) {
+	if (selrec.rect)
+		return
+	colorsel(false)
+	var cl = elt.getAttribute('class');
+	colcl = [cl.split(' ')[1]];	// cl[0]:'abcr', cl[1]:elt ref
+	colorsel(true)
+}
+
+// select elements in an image
+function svgsel(evt, svg) {
+var	pt, nr, i, elts, elt, x, y, cl,
+	xmlns = "http://www.w3.org/2000/svg"
+	switch (evt.type) {
+	case "mousedown":
+		if (selrec.rect) {
+			svg.removeChild(selrec.rect);
+			selrec.rect = null
+		}
+		colorsel(false);
+		svg.onmousemove = function(e) {svgsel(e, this)};
+		svg.onmouseup = function(e) {svgsel(e, this)};
+		pt = svg.getBoundingClientRect();
+		selrec.xs = evt.clientX - pt.left;
+		selrec.ys = evt.clientY - pt.top;
+		selrec.sel = true;
+		evt.stopPropagation()
+		break
+	case "mousemove":
+		if (!selrec.sel)
+			break
+		pt = svg.getBoundingClientRect();
+		selrec.x = evt.clientX - pt.left;
+		selrec.y = evt.clientY - pt.top
+		if (!selrec.rect) {
+			nr = true;
+			selrec.rect = document.createElementNS(xmlns, 'rect');
+			selrec.rect.setAttribute("x", selrec.xs);
+			selrec.rect.setAttribute("y", selrec.ys);
+		}
+		if (selrec.x > selrec.xs && selrec.y > selrec.ys) {
+			selrec.rect.setAttribute("width", selrec.x - selrec.xs);
+			selrec.rect.setAttribute("height",selrec.y - selrec.ys)
+		}
+		if (nr) {
+			selrec.rect.setAttribute("fill", "none");
+			selrec.rect.setAttribute("stroke", "blue");
+			svg.appendChild(selrec.rect)
+		}
+		evt.stopPropagation()
+		break
+	case "mouseup":
+//	case "mouseout":
+		if (!selrec.sel)
+			break
+		selrec.sel = false;
+		svg.onmousemove = null;
+		svg.onmouseup = null
+		if (!selrec.rect)
+			break
+		svg.removeChild(selrec.rect);
+
+		// define the selection
+		colorsel(false);
+// (svg.getEnclosureList does not work)
+		elts = svg.getElementsByClassName("abcr");
+		i = elts.length
+		while (--i >= 0) {
+			elt = elts[i];
+			x = Number(elt.getAttribute("x"))
+			y = Number(elt.getAttribute("y"))
+			if (x < selrec.xs
+			 || y < selrec.ys
+			 || x + Number(elt.getAttribute("width")) > selrec.x
+			 || y + Number(elt.getAttribute("height")) > selrec.y)
+				continue
+			cl = elt.getAttribute("class");
+			colcl.push(cl.split(' ')[1])
+		}
+		selrec.rect = null;
+		colorsel(true);
+		evt.stopPropagation()
+		break
 	}
 }
 
-// highlight the music elements on mouse over
-// 'me' is the rectangle
-function m_over(me) {
-	var	cl = me.getAttribute('class');
-	setcolor(cl.replace('abcr ', 'e'), "#ff0000")
-}
-function m_out(me) {
-	var	cl = me.getAttribute('class');
-	setcolor(cl.replace('abcr ', 'e'), "black")
-}
-
-// select the ABC element when click on a SVG 'abcr' rectangle
-function selabc(me) {
-	var	c = me.getAttribute('class'),
-		d_s_l_d = c.split('_'),
-		i1 = Number(d_s_l_d[1]),
-		i2 = i1 + Number(d_s_l_d[2]),
-		s = document.getElementById("source");
-	s.focus();
-	s.setSelectionRange(i1, i2)
-
-// does not work
-//	s = document.getElementById("dright");
-//	s.style.zindex = 0
-}
-
 // colorize the selection
-function colorsel(color) {
-	var i, n = colcl.length
-	for (i = 0; i < n; i++)
-		setcolor(colcl[i], color)
+function colorsel(on) {
+var	i, j, elts, d,
+	i1 = 1000000,	// (hope a ABC file is smaller than that!)
+	i2 = 0,
+	n = colcl.length
+
+	for (i = 0; i < n; i++) {
+		elts = document.getElementsByClassName(colcl[i]);
+		j = elts.length
+		while (--j >= 0)
+			elts[j].style.setProperty("fill-opacity", on ? 0.4 : 0)
+		if (on) {
+			d = colcl[i].split('_')
+			if (d[1] < i1)
+				i1 = d[1]
+			if (ref[d[1]] > i2)
+				i2 = ref[d[1]]
+		}
+	}
+	if (i1 < i2) {
+		var s = document.getElementById("source");
+		s.focus();
+		s.setSelectionRange(i1, i2)
+	}
+	if (!on)
+		colcl = []
 }
 
 // source text selection callback
 function seltxt(elt) {
-	var	i, n, o, start, end
+	var	i, n, o, start, end, s, z
 	if (colcl.length != 0) {
-		colorsel("black");
+		colorsel(false);
 		colcl = []
 	}
 	if (elt.selectionStart == undefined)
@@ -273,17 +342,14 @@ function seltxt(elt) {
 	if (start == 0
 	 && end == document.getElementById("source").value.length)
 		return				// select all
-	n = ref.length
-	for (i = 0; i < n; i++) {
-		o = ref[i][0]
-		if (o >= start && o < end)
-			colcl.push('e_' + o + '_' + ref[i][1] + '_')
+	for (o in ref) {
+		if (o >= start && ref[o] <= end)
+			colcl.push('_' + o + '_')
 	}
 	if (colcl.length != 0) {
-		colorsel("#ff0000")
-		var s = document.getElementById("dright")
-     var z = window.document.defaultView.getComputedStyle(s).getPropertyValue('z-index')
-//console.log("zindex " + z)
+		colorsel(true);
+		s = document.getElementById("dright");
+	  z = window.document.defaultView.getComputedStyle(s).getPropertyValue('z-index')
 		if (z != 10) {			// if select from textarea
 			var elts = document.getElementsByClassName(colcl[0]);
 			elts[0].scrollIntoView()	// move the element on the screen
@@ -338,9 +404,14 @@ function setfont() {
 }
 
 // playing
-//fixme: do tune/start-stop selection of what to play 
+//fixme: do tune/start-stop selection of what to play
+function notehlight(i, on) {
+	var elts = document.getElementsByClassName('_' + i + '_');
+	if (elts)
+		elts[0].style.setProperty("fill-opacity", on ? 0.4 : 0)
+}
 function endplay() {
-	document.getElementById("playbutton").setAttribute("value", texts.play);
+	document.getElementById("playbutton").innerHTML = texts.play;
 	playing = false
 }
 function play_tune() {
@@ -356,7 +427,7 @@ function play_tune() {
 		var abc = new Abc(user);
 
 		abcplay.clear();
-		abc.tosvg("play", "%%sounding-score")
+		abc.tosvg("play", "%%play")
 		try {
 			abc.tosvg(abc_fname[0], document.getElementById("source").value)
 		} catch(e) {
@@ -367,8 +438,8 @@ function play_tune() {
 		}
 		a_pe = abcplay.clear();	// keep the playing events
 	}
-	document.getElementById("playbutton").setAttribute("value", texts.stop);
-	abcplay.play(0, 100000, a_pe)	// play all events
+	document.getElementById("playbutton").innerHTML = texts.stop;
+	abcplay.play(0, 1000000, a_pe)	// play all events
 }
 
 // set the version and initialize the playing engine
@@ -392,14 +463,33 @@ function edit_init() {
 	e.addEventListener("click", function(){selsrc(1)})
 
 	// if playing is possible, load the playing scripts
+	// and set the sound font according to the browser capability
 	if (window.AudioContext || window.webkitAudioContext) {
 		var script = document.createElement('script');
 		script.src = "play-@MAJOR@.js";
 		script.onload = function() {
-			abcplay = new AbcPlay(endplay,
-//fixme: switch comment for test
-				"https://gleitz.github.io/midi-js-soundfonts/FluidR3_GM/")
-//				"./")
+			var	e,
+				t = null,
+				test = document.createElement('audio');
+			if (test.canPlayType
+			 && test.canPlayType('audio/mp3') != '')
+				t = {type: "mp3"};
+			abcplay = new AbcPlay(endplay, t, notehlight)
+//fixme: get soundfont URL/type from cookies (?)
+			e = document.getElementById("playbutton");
+			e.addEventListener("click", play_tune);
+			e.style.display = "inline-block";
+			document.getElementById("playdiv1").style.display =
+				document.getElementById("playdiv2").style.display =
+				document.getElementById("playdiv3").style.display =
+					"list-item";
+			document.getElementById("sfu").setAttribute("value",
+				abcplay.get_sfu());
+//!! soundfont type is either 0:"js" or 1:"mp3" - see edit.xhtml
+			document.getElementById("sft").selectedIndex =
+				abcplay.get_sft() == "js" ? 0 : 1;
+			document.getElementById("gvol").setAttribute("value",
+				(abcplay.get_vol() * 10) | 0)
 		}
 		document.head.appendChild(script);
 
@@ -408,11 +498,6 @@ function edit_init() {
 				if (playing)
 					abcplay.add(tsfirst, voice_tb)
 			}
-		document.getElementById("playbutton").style.display =
-			document.getElementById("playdiv").style.display =
-				"inline-block";
-		e = document.getElementById("playbutton");
-		e.addEventListener("click", play_tune)
 	}
 }
 
@@ -447,9 +532,10 @@ function dropped(evt) {
 
 // render the music after 2 seconds on textarea change
 var timer
-function src_change(evt) {
+function src_change() {
 	clearTimeout(timer);
-	timer = setTimeout(render, 2000)
+	if (!playing)
+		timer = setTimeout(render, 2000)
 }
 
 // wait for scripts to be loaded

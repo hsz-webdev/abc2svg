@@ -103,7 +103,7 @@ function get_int(param) {
 	var	v = parseInt(param)
 
 	if (isNaN(v)) {
-		parse.line.error("Bad integer value");
+		syntax(1, "Bad integer value");
 		v = 1
 	}
 	return v
@@ -118,7 +118,7 @@ function get_font_scale(param) {
 	var scale = parseFloat(a[a.length - 1])
 
 	if (isNaN(scale) || a <= 0) {
-		parse.line.error("Bad scale value in %%font")
+		syntax(1, "Bad scale value in %%font")
 		return
 	}
 	font_scale_tb[a[0]] = scale
@@ -270,50 +270,23 @@ const posval = {
 }
 
 /* -- set the position of elements in a voice -- */
-function set_pos(k,			// keyword
-		   a) {			// value
-	var v, val, pos;
-
-	val = posval[a]
-	if (val == undefined) {
-		parse.line.error("Bad value for %%" + k)
+function set_pos(k, v) {		// keyword, value
+	if (posval[v] == undefined) {
+		syntax(1, err_bad_val_s, k)
 		return
 	}
-	switch (k[0]) {
-	case 'd':
-		k = "dyn"		// dynamic
-		break
-	case 'g':
-		if (k[1] == 'c')
-			k = "gch"	// gchord
-		else
-			k = "gst"	// gstem
-		break
-	case 'o':
-		k = "orn"		// ornament
-		break
-	case 's':
-		k = "stm"		// stem
-		break
-	case 'v':
-		if (k[2] == 'c')
-			k = "voc"	// vocal
-		else
-			k = "vol"	// volume
-		break
-	default:
-//fixme: error or no error?
-		return
-	}
+	k = k.slice(0, 3)
+	if (k == "ste")
+		k = "stm"
 	if (curvoice)
 		curvoice.pos = clone(curvoice.pos);
-	set_v_param(k, val, 'pos')
+	set_v_param(k, v, 'pos')
 }
 
 // set/unset the fields to write
-function set_writefields(param) {
+function set_writefields(parm) {
 	var	c, i,
-		a = param.split(/\s+/)
+		a = parm.split(/\s+/)
 
 	if (get_bool(a[1])) {
 		for (i = 0; i < a[0].length; i++) {	// set
@@ -332,10 +305,9 @@ function set_writefields(param) {
 
 // set a voice specific parameter
 function set_v_param(k, v, sub) {
-//	if (parse.state == 3) {
 	if (curvoice) {
 		if (sub)
-			curvoice[sub][k] = v
+			curvoice[sub][k] = posval[v]	// sub == "pos" only
 		else
 			curvoice[k] = v
 		return
@@ -399,7 +371,7 @@ function set_format(cmd, param, lock) {
 	case "microscale":
 		f = get_int(param)
 		if (isNaN(f) || f < 4 || f > 256 || f % 1) {
-			parse.line.error("Bad value for %%microscale")
+			syntax(1, err_bad_val_s, "%%" + cmd)
 			break
 		}
 		set_v_param("uscale", f)
@@ -420,7 +392,7 @@ function set_format(cmd, param, lock) {
 	case "stretchlast":
 		f = parseFloat(param)
 		if (isNaN(f)) {
-			parse.line.error("Bad value for %%$1", cmd)
+			syntax(1, err_bad_val_s, '%%' + cmd)
 			break
 		}
 		if (cmd == "scale")	// old scale
@@ -503,7 +475,7 @@ function set_format(cmd, param, lock) {
 		break
 	case "fullsvg":
 		if (parse.state != 0) {
-			parse.line.error("Cannot have %%fullsvg inside a tune")
+			syntax(1, "Cannot have %%fullsvg inside a tune")
 			break
 		}
 //fixme: should check only alpha, num and '_' characters
@@ -525,7 +497,7 @@ function set_format(cmd, param, lock) {
 	case "notespacingfactor":
 		f = parseFloat(param)
 		if (isNaN(f) || f < 1 || f > 2) {
-			parse.line.error("Bad value for %%notespacingfactor")
+			syntax(1, err_bad_val_s, "%%" + cmd)
 			break
 		}
 		i = 5;				// index of crotchet
@@ -554,7 +526,7 @@ function set_format(cmd, param, lock) {
 	case "staffwidth":
 		v = cfmt.pagewidth - get_unitp(param) - cfmt.leftmargin
 		if (v < 0)
-			parse.line.error("%%staffwidth too big")
+			syntax(1, "%%staffwidth too big")
 		else
 			cfmt.rightmargin = v
 		break
@@ -565,7 +537,7 @@ function set_format(cmd, param, lock) {
 	case "voicecombine":
 		v = parseInt(param)
 		if (isNaN(v)) {
-			parse.line.error("Bad value for %%voicecombine")
+			syntax(1, err_bad_val_s, "%%" + cmd)
 			return
 		}
 		if (curvoice && cmd == "combinevoices") {
@@ -581,7 +553,7 @@ function set_format(cmd, param, lock) {
 	case "voicescale":
 		v = parseFloat(param)
 		if (isNaN(v) || v < .6 || v > 1.5) {
-			parse.line.error("Bad value for %%voicescale")
+			syntax(1, err_bad_val_s, "%%" + cmd)
 			return
 		}
 		set_v_param("scale", v)
@@ -657,7 +629,7 @@ function get_font(xxx) {
 	var	fn = cfmt[xxx],
 		font = font_tb[fn]
 	if (!font) {
-		parse.line.error("Unknown font $1", xxx);
+		syntax(1, "Unknown font $1", xxx);
 		font = gene.curfont
 	}
 	if (!font.fid)

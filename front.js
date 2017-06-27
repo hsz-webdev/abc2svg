@@ -303,48 +303,24 @@ function do_include(fn) {
 	include--
 }
 
+const	err_ign_s = "$1: inside tune - ignored",
+	err_bad_val_s = "Bad value in $1"
+
 // parse ABC code
 function tosvg(in_fname,		// file name
 		file) {			// file content
-	var	i, c, bol, eol, boc, eoc, end,
-		ext, select,
+	var	i, c, bol, eol, end,
+		ext, select, skip,
 		line0, line1,
 		last_info, opt, text, a, b, s,
-		cfmt_sav, info_sav, char_tb_sav, glovar_sav, maps_sav,
+		cfmt_sav, info_sav, char_tb_sav, glovar_sav, maps_sav, mac_sav,
 		pscom,
 		txt_add = '\n',		// for "+:"
 		eof = file.length
 
-	function set_boc() {
-		boc = bol
-		while (boc < eol) {
-			switch (file[boc]) {
-			case ' ':
-			case '\t':
-				boc++
-				continue
-			}
-			break
-		}
-	} // set_boc()
-
-	function set_eoc() {
-		eoc = eol - 1
-		while (eoc > bol) {
-			switch (file[boc]) {
-			case ' ':
-			case '\t':
-				eoc--
-				continue
-			}
-			break
-		}
-		eoc++
-	} // set_eoc()
-
 	// check if a tune is selected
 	function tune_selected() {
-		var	re,
+		var	re, res,
 			i = file.indexOf('K:', bol)
 
 		if (i < 0) {
@@ -378,7 +354,7 @@ function tosvg(in_fname,		// file name
 				i++
 				continue
 			case '%':
-				return src.slice(0, i).replace(/\s+$/,'')
+				return src.slice(0, i).replace(/\s+$/, '')
 			case '"':
 				break
 			default:
@@ -396,7 +372,7 @@ function tosvg(in_fname,		// file name
 				break
 			i = j
 		}
-		src = src.replace(/\s+$/,'');		// trimRight
+		src = src.replace(/\s+$/, '');		// trimRight
 		return src.replace(/\\%/g,'%')
 	} // uncomment()
 
@@ -414,43 +390,39 @@ function tosvg(in_fname,		// file name
 		char_tb = char_tb_sav;
 		glovar = glovar_sav;
 		maps = maps_sav;
+		mac = mac_sav;
 		init_tune()
 	} // end_tune()
 
 	// initialize
-	parse.file = file;
+	parse.file = file;		// used for errors
 	parse.ctx = {
 		fname: in_fname
 	}
-//--fixme: temporary
- var line = new scanBuf();
- parse.line = line;
- line.buffer = file;
- line.index = 0;
 
 	// scan the file
 	bol = 0
-	for (bol = 0; bol < eof; bol = eol + 1) {
+	for (bol = 0; bol < eof; bol = parse.eol + 1) {
 		eol = file.indexOf('\n', bol)	// get a line
 		if (eol < 0)
-			eol = eof
-		switch (file[bol]) {		// check if only white spaces
-		case ' ':
-		case '\t':
-			for (i = bol + 1; i < eol; i++) {
-				switch (file[i]) {
-				case ' ':
-				case '\t':
-					continue
-				case '%':
-					bol = i
-					break
-				}
-				break
+			eol = eof;
+		parse.eol = eol
+
+		// remove the ending white spaces
+		while (1) {
+			eol--
+			switch (file[eol]) {
+			case ' ':
+			case '\t':
+				continue
 			}
-			if (i >= eol)
-				bol = eol
 			break
+		}
+		eol++
+		if (skip) {			// tune skip
+			if (eol != bol)
+				continue
+			skip = false
 		}
 		if (eol == bol) {		// empty line
 			if (parse.state == 1) {
@@ -460,9 +432,9 @@ function tosvg(in_fname,		// file name
 				end_tune()
 			continue
 		}
-//fixme: are bol and iend useful?
 		parse.istart = parse.bol = bol;
-		parse.iend = parse.eol = eol;
+		parse.iend = eol;
+		parse.line.index = 0;
 
 		// check if the line is a pseudo-comment or I:
 		line0 = file[bol];
@@ -489,10 +461,17 @@ function tosvg(in_fname,		// file name
 		// pseudo-comments
 		if (pscom) {
 			pscom = false;
-			bol += 2;		// skip %%/I:
-			set_boc();
-			set_eoc();
-			text = file.slice(boc, eoc)
+			bol += 2		// skip %%/I:
+			while (1) {
+				switch (file[bol]) {
+				case ' ':
+				case '\t':
+					bol++
+					continue
+				}
+				break
+			}
+			text = file.slice(bol, eol)
 			if (!text || text[0] == '%')
 				continue
 			a = text.split(/\s+/, 2)
@@ -525,16 +504,16 @@ function tosvg(in_fname,		// file name
 				if (i < 0) {
 					syntax(1, "No $1 after %%$2",
 							end.slice(1), b[0]);
-					eol = eof
+					parse.eol = eof
 					continue
 				}
 				do_begin_end(b[1], a[1],
-					parse.file.slice(eol + 1, i).replace(
+					file.slice(eol + 1, i).replace(
 						new RegExp('^' + line0 + line1, 'gm'),
 										''));
-				eol = file.indexOf('\n', i + 6)
-				if (eol < 0)
-					eol = eof
+				parse.eol = file.indexOf('\n', i + 6)
+				if (parse.eol < 0)
+					parse.eol = eof
 				continue
 			}
 			switch (a[0]) {
@@ -612,7 +591,7 @@ function tosvg(in_fname,		// file name
 					}
 					break
 				}
-				eol = bol - 1
+				parse.eol = bol - 1
 				continue
 			}
 			do_pscom(uncomment(text.trim(), true))
@@ -622,6 +601,9 @@ function tosvg(in_fname,		// file name
 		// music line (or free text)
 		if (line1 != ':') {
 			last_info = undefined;
+			if (parse.state < 2)
+				continue
+			parse.line.buffer = file.slice(bol, eol);
 			parse_music_line()
 			continue
 		}
@@ -634,19 +616,21 @@ function tosvg(in_fname,		// file name
 				syntax(1, "+: without previous info field")
 				continue
 			}
-			txt_add = ' ';
+			txt_add = ' ';		// concatenate
 			line0 = last_info
 		}
 
 		switch (line0) {
 		case 'X':			// start of tune
 			if (parse.state != 0) {
-				syntax(1, "$1: inside tune - ignored", line0)
+				syntax(1, err_ign_s, line0)
 				continue
 			}
 			if (parse.select
-			 && !tune_selected())
+			 && !tune_selected()) {
+				skip = true
 				continue
+			}
 
 			cfmt_sav = clone(cfmt);
 			cfmt.pos = clone(cfmt.pos);
@@ -659,6 +643,7 @@ function tosvg(in_fname,		// file name
 			char_tb_sav = clone(char_tb);
 			glovar_sav = clone(glovar);
 			maps_sav = maps;
+			mac_sav = mac;
 			info.X = text;
 			parse.state = 1			// tune header
 			continue
@@ -684,19 +669,34 @@ function tosvg(in_fname,		// file name
 				info.K = text
 				break
 			}
-//temporary
- parse.line.buffer = text;
- parse.line.index = 0
 			do_info(line0, text)
 			continue
 		case 'W':
 			if (parse.state == 0
 			 || cfmt.writefields.indexOf(line0) < 0)
 				break
-			if (!info.W)
+			if (info.W == undefined)
 				info.W = text
 			else
 				info.W += txt_add + text
+			break
+
+		case 'm':
+			if (parse.state >= 2) {
+				syntax(1, err_ign_s, line0)
+				continue
+			}
+			if ((!cfmt.sound || cfmt.sound != "play")
+			 && cfmt.writefields.indexOf(line0) < 0)
+				break
+			a = text.match(/(.*?)[= ]+(.*)/)
+			if (!a || !a[2]) {
+				syntax(1, err_bad_val_s, "m:")
+				continue
+			}
+			if (a[1].indexOf('n') >= 0)	// dynamic
+				a[1] = a[1].replace('n', ".[',]?");
+			mac[a[1]] = a[2]
 			break
 
 		// info fields in tune body only
@@ -716,14 +716,16 @@ function tosvg(in_fname,		// file name
 				continue
 			}
 			break
-		// "|:" starts a music line
-		case '|':
+		case '|':			// "|:" starts a music line
+			if (parse.state < 2)
+				continue
+			parse.line.buffer = file.slice(bol, eol);
 			parse_music_line()
 			continue
 		default:
 			if ("ABCDFGHOSZ".indexOf(line0) >= 0) {
 				if (parse.state >= 2) {
-					syntax(1, "$1: inside tune - ignored", line0)
+					syntax(1, err_ign_s, line0)
 					continue
 				}
 //				if (cfmt.writefields.indexOf(c) < 0)
@@ -736,9 +738,6 @@ function tosvg(in_fname,		// file name
 			}
 
 			// info field which may be embedded
-//temporary
- parse.line.buffer = text;
- parse.line.index = 0
 			do_info(line0, text)
 			continue
 		}

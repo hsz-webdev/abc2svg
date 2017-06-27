@@ -533,12 +533,12 @@ function out_acciac(x, y, dx, dy, up) {
 	out_XYAB('<path class="stroke" d="mX YlF G"/>\n',
 		x, y, dx, -dy)
 }
-// simple measure bar
-function out_bar(x, y, h) {
-	x += posx;
-	y = posy - y;
-	output.push('<path class="stroke" stroke-width="1" d="m' +
-		x.toFixed(2) + ' ' + y.toFixed(2) + 'v' + (-h).toFixed(2) +
+// simple /dotted measure bar
+function out_bar(x, y, h, dotted) {
+	output.push('<path class="stroke" stroke-width="1" ' +
+		(dotted ? 'stroke-dasharray="5,5" ' : '') +
+		'd="m' + (x + posx).toFixed(2) +
+		' ' + (posy - y).toFixed(2) + 'v' + (-h).toFixed(2) +
 		'"/>\n')
 }
 // tuplet value - the staves are not defined
@@ -577,13 +577,6 @@ function out_bracket(x, y, h) {
 	c10.5 1 12 -4.5 12 -3.5c0 1 -3.5 5.5 -8.5 5.5\n\
 	v' + h.toFixed(2) + '\n\
 	c5 0 8.5 4.5 8.5 5.5c0 1 -1.5 -4.5 -12 -3.5"/>\n')
-}
-// dotted measure bar
-function out_dotbar(x, y, h) {
-	x += posx;
-	y = posy - y;
-	output.push('<path class="stroke" stroke-dasharray="5,5"\n\
-	d="m' + x.toFixed(2) + ' ' + y.toFixed(2) + 'v' + (-h).toFixed(2) + '"/>\n')
 }
 // hyphen
 function out_hyph(x, y, w) {
@@ -890,7 +883,7 @@ var deco_val_tb = {
 	dim:	out_dim,
 	ltr:	out_ltr,
 	"8va":	out_8va,
-	"8vb": out_8vb,
+	"8vb":	out_8vb,
 	"15ma":	out_15ma,
 	"15mb": out_15mb
 }
@@ -974,64 +967,63 @@ function clean_txt(text) {
 
 // create the SVG image of the block
 function svg_flush() {
-	var img_title
+//	var img_title, head
+	var head
 
-	if (multicol || !output || !user.img_out || posy == 0)
+	if (multicol || output.length == 0 || !user.img_out || posy == 0)
 		return
-	if (info.X) {
-		img_title = info.X + '.'
-		if (info.T)
-			img_title += ' ' + info.T.split('\n')[0]
-		img_title = clean_txt(img_title)
-	} else {
-		img_title = 'noname'
-	}
+//	if (info.X) {
+//		img_title = info.X + '.'
+//		if (info.T)
+//			img_title += ' ' + info.T.split('\n')[0]
+//		img_title = clean_txt(img_title)
+//	} else {
+//		img_title = 'noname'
+//	}
 	posy *= cfmt.scale
 
 	if (user.imagesize) {
-		user.img_out('<svg xmlns="http://www.w3.org/2000/svg" version="1.1"\n\
+		head = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"\n\
 	xmlns:xlink="http://www.w3.org/1999/xlink"\n\
 	color="black"\n' +
 			user.imagesize +
 			' viewBox="0 0 ' + cfmt.pagewidth.toFixed(0) + ' ' +
-			 posy.toFixed(0) + '">\n\
-<title>abc2svg - ' + img_title + '</title>')
+			 posy.toFixed(0) + '">\n'
+//<title>abc2svg - ' + img_title + '</title>\n'
 	} else {
-		user.img_out('<svg xmlns="http://www.w3.org/2000/svg" version="1.1"\n\
+		head = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1"\n\
 	xmlns:xlink="http://www.w3.org/1999/xlink"\n\
 	color="black"\n\
-	width="' + cfmt.pagewidth.toFixed(0) + 'px" height="' + posy.toFixed(0) + 'px">\n\
-<title>abc2svg - ' + img_title + '</title>')
+	width="' + cfmt.pagewidth.toFixed(0) +
+			'px" height="' + posy.toFixed(0) + 'px">\n'
+//<title>abc2svg - ' + img_title + '</title>\n'
 	}
 
 	if (style || font_style || musicfont) {
-		user.img_out('<style type="text/css">'
-				+ style + font_style)
+		head += '<style type="text/css">' + style + font_style + '\n'
 		if (musicfont)
-			user.img_out('@font-face {\n\
+			head += '@font-face {\n\
   font-family: "music";\n\
-  src: ' + musicfont + '}');
-		user.img_out('</style>')
+  src: ' + musicfont + '}\n';
+		head += '</style>\n'
 	}
 	if (defs)
-		user.img_out('<defs>' + defs + '\n</defs>')
+		head += '<defs>' + defs + '\n</defs>\n'
 	if (cfmt.bgcolor)
-		user.img_out('<rect width="100%" height="100%" fill="' +
-				cfmt.bgcolor + '"/>');
+		head += '<rect width="100%" height="100%" fill="' +
+				cfmt.bgcolor + '"/>\n'
 	if (cfmt.scale == 1)
-//		user.img_out('<g class="abc2svg" stroke-width=".7">')
-		user.img_out('<g class="music" stroke-width=".7">')
+		head += '<g class="music" stroke-width=".7">\n'
 	else
-//		user.img_out('<g class="abc2svg" stroke-width=".7" transform="scale(' +
-		user.img_out('<g class="music" stroke-width=".7" transform="scale(' +
-					cfmt.scale.toFixed(2) + ')">');
+		head += '<g class="music" stroke-width=".7" transform="scale(' +
+					cfmt.scale.toFixed(2) + ')">\n';
 
 	if (svgobj) {			// if PostScript support
 		svgobj.setg(0);
 		output.push(svgbuf);
 		svgbuf = ''
 	}
-	user.img_out(output.join('') + "</g>\n</svg>");
+	user.img_out(head + output.join('') + "</g>\n</svg>");
 	output = []
 
 	font_style = ''
@@ -1045,8 +1037,6 @@ function svg_flush() {
 	}
 	posy = 0
 }
-
-var block_started
 
 // output a part of a block of images
 function blk_out() {
@@ -1067,7 +1057,7 @@ Abc.prototype.blk_out = blk_out
 
 // output the end of a block (or tune)
 function blk_flush() {
-	if (block.started && user.img_out) {
+	if (block.started) {
 		block.started = false;
 		user.img_out('</div>')
 	}

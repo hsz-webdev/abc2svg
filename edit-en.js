@@ -15,17 +15,17 @@ function loadtxt() {
 	document.getElementById("er").innerHTML = 'Errors';
 	document.getElementById("f").innerHTML = 'File';
 	document.getElementById("fl").innerHTML = 'Load file';
+	document.getElementById("fo").innerHTML = 'Follow music';
 	document.getElementById("fs").innerHTML = 'Font size';
-	document.getElementById("gv").innerHTML = 'General volume';
+	document.getElementById("gv").innerHTML = 'Volume';
 	document.getElementById("h").innerHTML = 'Help';
 	document.getElementById("ha").innerHTML = 'Help';
 	document.getElementById("lg").innerHTML = 'Language';
-	e = document.getElementById("ov")
-	if (e)
-		e.innerHTML = 'Oscillator volume';
+    	document.getElementById("playbutton").innerHTML = 'Play';
 	document.getElementById("pr").innerHTML = 'Preferences';
 	document.getElementById("saveas").innerHTML = 'Save file';
-    	document.getElementById("playbutton").innerHTML = 'Play';
+	document.getElementById("sftl").innerHTML = 'type';
+	document.getElementById("sful").innerHTML = 'Soundfont URL';
 
 	document.getElementById("hlp").outerHTML = '<ul id="hlp">\n\
 <li>You may either:\n\

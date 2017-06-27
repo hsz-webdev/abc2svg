@@ -2,7 +2,7 @@
 
 MAJOR=1
 MINOR=12
-PATCH=5
+PATCH=12
 VERSION=$MAJOR.$MINOR.$PATCH
 
 rule cp
@@ -16,6 +16,7 @@ rule font
 
 rule jsc
   command = cp license $out;$
+   echo '"use strict"' >> $out;$
    date +'const abc2svg={version:"$VERSION",vdate:"%F"}' >> $out;$
    cat $in | uglifyjs - >> $out
 # uglifyjs options
@@ -40,7 +41,6 @@ rule dist_tar
   abc2svg-$VERSION/abc2svg.js $
   abc2svg-$VERSION/abc2svg.sfd $
   abc2svg-$VERSION/abc2svg.woff $
-  abc2svg-$VERSION/acoustic_grand_piano-ogg.js $
   abc2svg-$VERSION/build.ninja $
   abc2svg-$VERSION/cmdline.js $
   abc2svg-$VERSION/deco.js $
@@ -111,7 +111,7 @@ build abcdoc-$MAJOR.js: jscu abcdoc.js
 build abcemb-$MAJOR.js: jscu abcemb.js
 build json-$MAJOR.js: jscu json.js
 build midi-$MAJOR.js: jscu midi.js
-build play-$MAJOR.js: jscu play.js acoustic_grand_piano-ogg.js
+build play-$MAJOR.js: jscu play.js
 
 build edit-$MAJOR.xhtml psedit-$MAJOR.xhtml edit-$MAJOR.js: edit $
  edit.xhtml edit.js

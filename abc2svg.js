@@ -70,11 +70,13 @@ var	glovar = {
 			a_meter: []		// default: none
 		}
 	},
-	info = {},
+	info = {},		// information fields
+	mac = {},		// macros (m:)
 	parse = {
 		ctx: {},
 		prefix: '%',
-		state: 0
+		state: 0,
+		line: new scanBuf()
 	}
 
 // utilities
@@ -101,14 +103,13 @@ function errbld(sev, txt, fn, idx) {
 		return
 	}
 	if (idx != undefined && idx >= 0) {
-		l = 0;
-		i = -1;
+		i = l = 0
 		while (1) {
-			j = parse.file.indexOf('\n', i + 1)
+			j = parse.file.indexOf('\n', i)
 			if (j < 0 || j > idx)
 				break
 			l++;
-			i = j
+			i = j + 1
 		}
 		c = idx - i
 	}
@@ -161,9 +162,6 @@ function scanBuf() {
 	this.next_char = function() {
 		return this.buffer[++this.index]
 	}
-	this.advance = function() {
-		this.index++
-	}
 	this.get_int = function() {
 		var	val = 0,
 			c = this.buffer[this.index]
@@ -173,40 +171,10 @@ function scanBuf() {
 		}
 		return val
 	}
-	this.get_float = function() {
-		var txt = "", c
-		while (1) {
-			c = this.buffer[this.index]
-			if ("0123456789.-".indexOf(c) < 0)
-				break
-			txt += c;
-			this.index++
-		}
-		return parseFloat(txt)
-	}
-	this.error = function(msg, a1, a2, a3, a4) {
-		var i, regex, tmp
-
-		if (user.textrans) {
-			tmp = user.textrans[msg]
-			if (tmp)
-				msg = tmp
-		}
-		if (arguments.length > 1)
-			msg = msg.replace(/\$./g, function(a) {
-				switch (a) {
-				case '$1': return a1
-				case '$2': return a2
-				case '$3': return a3
-				default  : return a4
-				}
-			})
-		errbld(1, msg, parse.ctx.fname, this.index + parse.bol - 1)
-	}
 }
 
 function syntax(sev, msg, a1, a2, a3, a4) {
-	var i, j, regex, tmp
+	var regex, tmp
 
 	if (user.textrans) {
 		tmp = user.textrans[msg]
@@ -222,7 +190,7 @@ function syntax(sev, msg, a1, a2, a3, a4) {
 			default  : return a4
 			}
 		})
-	errbld(sev, msg, parse.ctx.fname, parse.istart)
+	errbld(sev, msg, parse.ctx.fname, parse.istart + parse.line.index)
 }
 
 function empty_function() {

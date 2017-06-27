@@ -15,17 +15,17 @@ function loadtxt() {
 	document.getElementById("er").innerHTML = 'Erreurs';
 	document.getElementById("f").innerHTML = 'Fichier';
 	document.getElementById("fl").innerHTML = 'Ouvrir un fichier';
+	document.getElementById("fo").innerHTML = 'Suivre la musique';
 	document.getElementById("fs").innerHTML = 'Taille police';
-	document.getElementById("gv").innerHTML = 'Volume général';
+	document.getElementById("gv").innerHTML = 'Volume son';
 	document.getElementById("h").innerHTML = 'Aide';
 	document.getElementById("ha").innerHTML = 'Aide';
 	document.getElementById("lg").innerHTML = 'Langue';
-	e = document.getElementById("ov")
-	if (e)
-		e.innerHTML = 'Volume oscillateur';
 	document.getElementById("playbutton").innerHTML = 'Jouer';
 	document.getElementById("pr").innerHTML = 'Préférences';
 	document.getElementById("saveas").innerHTML = 'Sauver le fichier';
+	document.getElementById("sftl").innerHTML = 'type';
+	document.getElementById("sful").innerHTML = 'Police de sons URL';
 
 	document.getElementById("hlp").outerHTML = '<ul  id="hlp">\n\
 <li>Vous pouvez, soit:\n\

@@ -153,7 +153,7 @@ function sort_all() {
 		set_sy = true
 
 	while (1) {
-		if (set_sy) {
+		if (set_sy && fl) {
 			set_sy = false;
 			multi = -1;
 			vn = []
@@ -254,7 +254,7 @@ function sort_all() {
 			if (prev)
 				prev.ts_next = s
 			else
-				tsfirst = s
+				tsfirst = s;
 			prev = s
 
 			vtb[v] = s.next
@@ -433,6 +433,8 @@ function dupl_voice() {
 		p_voice2.clef = clone(p_voice.clef);
 		curvoice = p_voice2
 		for ( ; s; s = s.next) {
+			if (s.type == STAVES)
+				continue
 			s2 = clone(s)
 			if (s.notes) {
 				s2.notes = []
@@ -501,13 +503,12 @@ function new_syst(init) {
 		if (p_voice.staffscale)
 			sy_staff.staffscale = p_voice.staffscale;
 		sy_new.voices[v] = clone(par_sy.voices[v]);
-		sy_new.voices[v].range = -1
+		sy_new.voices[v].range = -1;
 		delete sy_new.voices[v].second
 	}
 	for (st = 0; st < par_sy.staves.length; st++) {
 		sy_new.staves[st] = clone(par_sy.staves[st]);
-		sy_new.staves[st].flags = 0;
-		sy_new.staves[st].empty = true
+		sy_new.staves[st].flags = 0
 	}
 	par_sy.next = sy_new;
 	par_sy = sy_new
@@ -818,12 +819,12 @@ function get_break(param) {
 		}
 		j = b.indexOf('/')
 		if (j < 0) {
-			parse.line.error("'/' missing in %%break")
+			syntax(1, "'/' missing in %%break")
 			break
 		}
 		d = parseInt(b.slice(j + 1))
 		if (isNaN(d) || d <= 1) {
-			parse.line.error("Bad denominator in %%break")
+			syntax(1, "Bad denominator in %%break")
 			break
 		}
 		glovar.break.push({
@@ -843,7 +844,7 @@ function get_map(text) {
 		a = info_split(text, 2)
 
 	if (a.length < 3) {
-		parse.line.error("Not enough parameters in %%map")
+		syntax(1, "Not enough parameters in %%map")
 		return
 	}
 	ns = a[1]
@@ -857,11 +858,9 @@ function get_map(text) {
 	} else {				// exact pitch, rebuild the note
 		tmp = new scanBuf();
 		tmp.buffer = a[1];
-		tmp.index = 0;
-		tmp.ctx = parse.ctx;
 		note = parse_acc_pit(tmp)
 		if (!note) {
-			parse.line.error("Bad note in %%map")
+			syntax(1, "Bad note in %%map")
 			return
 		}
 		ns = 'abcdefg'[(note.pit + 77) % 7]
@@ -888,8 +887,6 @@ function get_map(text) {
 		if (a[2][0] != '*') {
 			tmp = new scanBuf();		// print
 			tmp.buffer = a[2];
-			tmp.index = 0;
-			tmp.ctx = parse.ctx;
 			map[1] = parse_acc_pit(tmp)
 		}
 		if (!a[3])
@@ -909,8 +906,6 @@ function get_map(text) {
 		case "print=":
 			tmp = new scanBuf();
 			tmp.buffer = a[++i];
-			tmp.index = 0;
-			tmp.ctx = parse.ctx;
 			map[1] = parse_acc_pit(tmp)
 			break
 //		case "transpose=":
@@ -945,11 +940,10 @@ function get_midi(param) {
 			prog = a[1]
 		}
 		prog = parseInt(prog)
-		if (isNaN(prog) || prog < 1 || prog > 128) {
-			parse.line.error("Bad program in %%MIDI")
+		if (isNaN(prog) || prog < 0 || prog > 127) {
+			syntax(1, "Bad program in %%MIDI")
 			return
 		}
-		prog--
 		if (curvoice)
 			curvoice.instr = prog
 		else
@@ -976,7 +970,7 @@ function set_transp() {
 
 	curvoice.vtransp = transp;
 
-	s = curvoice.sym
+	s = curvoice.last_sym
 	if (!s) {				// no symbol yet
 		curvoice.key = clone(curvoice.okey);
 		key_transp(curvoice.key);
@@ -1103,7 +1097,7 @@ function do_pscom(text) {
 			break
 		case "new":
 			if (!multicol) {
-				parse.line.error("%%multicol new without start")
+				syntax(1, "%%multicol new without start")
 				break
 			}
 			if (posy > multicol.maxy)
@@ -1122,7 +1116,7 @@ function do_pscom(text) {
 			break
 		case "end":
 			if (!multicol) {
-				parse.line.error("%%multicol end without start")
+				syntax(1, "%%multicol end without start")
 				break
 			}
 			if (posy < multicol.maxy)
@@ -1141,7 +1135,7 @@ function do_pscom(text) {
 			blk_out()
 			break
 		default:
-			parse.line.error("Unknown keyword '$1' in %%multicol", param)
+			syntax(1, "Unknown keyword '$1' in %%multicol", param)
 			break
 		}
 		return
@@ -1156,7 +1150,7 @@ function do_pscom(text) {
 		}
 		n = parseInt(param)
 		if (isNaN(n) || n < -2 || n > 2) {
-			parse.line.error("Bad value for %%ottava")
+			syntax(1, err_bad_val_s, "%%ottava")
 			return
 		}
 		switch (curvoice.ottava) {
@@ -1166,9 +1160,11 @@ function do_pscom(text) {
 		case -14: b = "15ma)"; break
 		}
 		if (b) {
-			if (!a_dcn)
-				a_dcn = []
-			a_dcn.push(b);
+			if (!curvoice.second) {
+				if (!a_dcn)
+					a_dcn = []
+				a_dcn.push(b)
+			}
 			set_ottava(b)
 		}
 		switch (n) {
@@ -1178,9 +1174,11 @@ function do_pscom(text) {
 		case 1: b = "8va("; break
 		case 2: b = "15ma("; break
 		}
-		if (!a_dcn)
-			a_dcn = []
-		a_dcn.push(b);
+		if (!curvoice.second) {
+			if (!a_dcn)
+				a_dcn = []
+			a_dcn.push(b)
+		}
 		set_ottava(b)
 		return
 	case "repbra":
@@ -1194,9 +1192,9 @@ function do_pscom(text) {
 		if (parse.state != 3)
 				return
 		if (!curvoice.last_sym) {
-				parse.line.error("%%repeat cannot start a tune")
-				return
-			}
+			syntax(1, "%%repeat cannot start a tune")
+			return
+		}
 		if (!param.length) {
 			n = 1;
 			k = 1
@@ -1208,14 +1206,14 @@ function do_pscom(text) {
 			if (isNaN(n) || n < 1
 			 || (curvoice.last_sym.type == BAR
 			  && n > 2)) {
-				parse.line.error("Incorrect 1st value in %%repeat")
+				syntax(1, "Incorrect 1st value in %%repeat")
 				return
 			}
 			if (isNaN(k)) {
 				k = 1
 			} else {
 				if (k < 1) {
-					parse.line.error("Incorrect 2nd value in %%repeat")
+					syntax(1, "Incorrect 2nd value in %%repeat")
 					return
 				}
 			}
@@ -1224,11 +1222,12 @@ function do_pscom(text) {
 		parse.repeat_k = k
 		return
 	case "sep":
-		lwidth = cfmt.pagewidth - cfmt.leftmargin - cfmt.rightmargin
-		var h2, len;
+		var	h2, len, values,
+			lwidth = cfmt.pagewidth - cfmt.leftmargin - cfmt.rightmargin;
+
 		h1 = h2 = len = 0
 		if (param) {
-			var values = param.split(/\s+/);
+			values = param.split(/\s+/);
 			h1 = get_unit(values[0])
 			if (values[1]) {
 				h2 = get_unit(values[1])
@@ -1260,7 +1259,7 @@ function do_pscom(text) {
 	case "setbarnb":
 		val = parseInt(param)
 		if (isNaN(val))
-			parse.line.error("Bad %%setbarnb value")
+			syntax(1, "Bad %%setbarnb value")
 		else if (parse.state >= 2)
 			glovar.new_nbar = val
 		else
@@ -1274,7 +1273,7 @@ function do_pscom(text) {
 		}
 		val = parseInt(param)
 		if (isNaN(val)) {
-			parse.line.error("Bad %%staff value '$1'", param)
+			syntax(1, "Bad %%staff value '$1'", param)
 			return
 		}
 		var st
@@ -1283,7 +1282,7 @@ function do_pscom(text) {
 		else
 			st = val - 1
 		if (st < 0 || st > nstaff) {
-			parse.line.error("Bad %%staff number $1 (cur $2, max $3)",
+			syntax(1, "Bad %%staff number $1 (cur $2, max $3)",
 					st, curvoice.cst, nstaff)
 			return
 		}
@@ -1314,14 +1313,14 @@ function do_pscom(text) {
 	case "stafflines":
 		val = get_st_lines(param)
 		if (val == undefined)
-			parse.line.error("Bad %%stafflines value")
+			syntax(1, "Bad %%stafflines value")
 		else
 			set_v_param(cmd, val)
 		return
 	case "staffscale":
 		val = parseFloat(param)
 		if (isNaN(val) || val < .3 || val > 2)
-			parse.line.error("Bad %%staffscale value")
+			syntax(1, "Bad %%staffscale value")
 		else
 			set_v_param(cmd, val)
 		return
@@ -1367,13 +1366,15 @@ function do_pscom(text) {
 				s = clone(curvoice.okey);
 				s.ctx = parse.ctx;
 				s.istart = parse.istart;
-				s.iend = parse.iend
+				s.iend = parse.iend;
+				sym_link(s)
 				break
 			case KEY:
 				break
 			default:
 				continue
 			}
+			break
 		}
 		do_info('V', curvoice.id + ' shift=' + param)
 		return
@@ -1394,7 +1395,7 @@ function do_pscom(text) {
 	case "vskip":
 		val = get_unit(param)
 		if (val < 0) {
-			parse.line.error("%%vskip cannot be negative")
+			syntax(1, "%%vskip cannot be negative")
 			return
 		}
 		if (parse.state >= 2) {
@@ -1466,7 +1467,7 @@ function do_begin_end(type,
 			if (i >= 0) {
 				j = text.indexOf('</style>', i)
 				if (j < 0) {
-					parse.line.error("No </style> in %%beginsvg sequence")
+					syntax(1, "No </style> in %%beginsvg sequence")
 					break
 				}
 				style += text.slice(i + 23, j)
@@ -1476,7 +1477,7 @@ function do_begin_end(type,
 			if (i >= 0) {
 				j = text.indexOf('</defs>', i)
 				if (j < 0) {
-					parse.line.error("No </defs> in %%beginsvg sequence")
+					syntax(1, "No </defs> in %%beginsvg sequence")
 					break
 				}
 				defs_add(text.slice(i + 6, j))
@@ -1657,10 +1658,10 @@ function acc_same_pitch(pitch) {
 }
 
 /* -- get staves definition (%%staves / %%score) -- */
-function get_staves(cmd, param) {
+function get_staves(cmd, parm) {
 	var	s, p_voice, p_voice2, i, flags, v, vid,
 		st, range,
-		a_vf = parse_staves(param) // array of [vid, flags]
+		a_vf = parse_staves(parm) // array of [vid, flags]
 
 	if (!a_vf)
 		return
@@ -1685,9 +1686,9 @@ function get_staves(cmd, param) {
 	 || (maxtime == 0 && staves_found < 0)) {
 		for (v = 0; v < par_sy.voices.length; v++)
 			par_sy.voices[v].range = -1
-//		curvoice = voice_tb[0]
-	} else if (staves_found != maxtime) {	// if no 2 %%staves
-// fixme: problem if 2 %%staves and no common voice with previous %%staves
+//	} else if (staves_found != maxtime) {	// if no 2 %%staves
+	} else {
+// fixme: problem if no common voice with previous %%staves
 
 		/*
 		 * create a new staff system and
@@ -1705,11 +1706,25 @@ function get_staves(cmd, param) {
 			type: STAVES,
 			dur: 0
 		}
-		sym_link(s);		/* link the staves in this voice */
+
+		// put the staves before a measure bar (see draw_bar())
+		var s2 = curvoice.last_sym
+		if (s2 && s2.type == BAR && s2.time == maxtime) {
+			curvoice.last_sym = s2.prev
+			if (!s2.prev)
+				curvoice.sym = s2.prev;	// null
+			sym_link(s);
+			s.next = s2;
+			s2.prev = s;
+			curvoice.last_sym = s2
+		} else {
+			sym_link(s)	// link the staves in this voice
+		}
 		par_sy.nstaff = nstaff;
 		new_syst()
 	}
 
+//	staves_found = maxtime < 0 ? 0 : maxtime
 	staves_found = maxtime
 
 	/* initialize the (old) voices */
@@ -1717,7 +1732,7 @@ function get_staves(cmd, param) {
 		p_voice = voice_tb[v]
 		delete p_voice.second
 		delete p_voice.ignore
-		delete p_voice.floating;
+		delete p_voice.floating
 //		p_voice.time = maxtime
 	}
 	range = 0
@@ -1834,7 +1849,7 @@ function get_staves(cmd, param) {
 
 	/* change the behaviour of '|' in %%score */
 	if (cmd[1] == 'c') {				/* if %%score */
-		for (st = 0; st <= nstaff; st++)
+		for (st = 0; st < nstaff; st++)
 			par_sy.staves[st].flags ^= STOP_BAR
 	}
 
@@ -1859,8 +1874,12 @@ function get_staves(cmd, param) {
 		curvoice = null
 }
 
+const err_no_strt_ov = "No note in voice overlay"
+
 /* -- get a voice overlay -- */
 function get_vover(type) {
+	var	p_voice2, p_voice3, range, s, time, v, v2, v3,
+		line = parse.line
 
 	// get a voice or create a clone of the current voice
 	function clone_voice(id) {
@@ -1874,35 +1893,34 @@ function get_vover(type) {
 		p_voice = clone(curvoice);
 		p_voice.v = voice_tb.length;
 		p_voice.id = id;
-//		p_voice.pos = curvoice.pos
-//		if (curvoice.color)
-//			p_voice.color = curvoice.color;
 		p_voice.sym = p_voice.last_sym = null;
 
 		p_voice.nm = null;
 		p_voice.snm = null;
+		p_voice.new_name = false;
 		p_voice.lyric_restart = p_voice.lyric_restart =
 			p_voice.lyric_cont = p_voice.ly_a_h = null;
 
 		voice_tb.push(p_voice)
 		return p_voice
-	}
-
-	var	line = parse.line,
-		p_voice2, p_voice3, range, v, v2, v3
+	} // clone_voice()
 
 	/* treat the end of overlay */
 	if (curvoice.ignore)
 		return
 	if (type == '|'
 	 || type == ')')  {
-		curvoice.last_sym.beam_end = true
+		if (!curvoice.last_note) {
+			syntax(1, err_no_strt_ov)
+			return
+		}
+		curvoice.last_note.beam_end = true
 		if (!vover) {
-			line.error("Erroneous end of voice overlap")
+			syntax(1, "Erroneous end of voice overlap")
 			return
 		}
 		if (curvoice.time != vover.mxtime)
-			line.error("Wrong duration in voice overlay");
+			syntax(1, "Wrong duration in voice overlay");
 		curvoice = vover.p_voice;
 		vover = null
 		return
@@ -1911,7 +1929,7 @@ function get_vover(type) {
 	/* treat the full overlay start */
 	if (type == '(') {
 		if (vover) {
-			line.error("Voice overlay already started")
+			syntax(1, "Voice overlay already started")
 			return
 		}
 		vover = {			// no voice yet
@@ -1923,7 +1941,7 @@ function get_vover(type) {
 	/* (here is treated a new overlay - '&') */
 	/* create the extra voice if not done yet */
 	if (!curvoice.last_note) {
-		line.error("No note before start of voice overlay")
+		syntax(1, err_no_strt_ov)
 		return
 	}
 //--fixme?
@@ -1989,7 +2007,7 @@ function get_vover(type) {
 			mxtime: curvoice.time,
 			p_voice: curvoice
 		}
-		var time = p_voice2.time
+		time = p_voice2.time
 		for (s = curvoice.last_sym; /*s*/; s = s.prev) {
 			if (s.type == BAR
 			 || s.time <= time)	/* (if start of tune) */
@@ -2001,7 +2019,7 @@ function get_vover(type) {
 			vover.mxtime = curvoice.time;
 			vover.p_voice = curvoice
 		} else if (curvoice.time != vover.mxtime) {
-			line.error("Wrong duration in voice overlay")
+			syntax(1, "Wrong duration in voice overlay")
 		}
 	}
 	p_voice2.time = vover.time;
@@ -2010,6 +2028,8 @@ function get_vover(type) {
 
 // check if a clef, key or time signature may go at start of the current voice
 function is_voice_sig() {
+	var s
+
 	if (!curvoice.sym)
 		return true	// new voice (may appear in the middle of a tune)
 	if (curvoice.time != 0)
@@ -2028,6 +2048,8 @@ function is_voice_sig() {
 
 // treat a clef found in the tune body
 function get_clef(s) {
+	var	s2, s3
+
 	if (is_voice_sig()) {
 		curvoice.clef = s
 		return
@@ -2071,9 +2093,10 @@ function get_key(kp) {
 
 	// in tune header (first K:)
 	if (parse.state == 1) {
-		if (s_key.k_sf == undefined && !s_key.k_a_acc)
-//fixme: empty K: - should raise a warning
-			s_key.k_sf = 0
+		if (s_key.k_sf == undefined && !s_key.k_a_acc) { // empty K:
+			s_key.k_sf = 0;
+			s_key.k_none = true
+		}
 		for (v = 0; v < voice_tb.length; v++) {
 			p_voice = voice_tb[v];
 			p_voice.key = s_key;
@@ -2108,10 +2131,8 @@ function get_key(kp) {
 
 	if (s_key.k_sf == undefined) {
 		if (!s_key.k_a_acc
-		 && !transp) {
-			delete s_key
+		 && !transp)
 			return
-		}
 		s_key.k_sf = curvoice.okey.k_sf
 	}
 
@@ -2268,7 +2289,7 @@ function get_voice(parm) {
 	
 		if (par_sy.voices[v].range < 0) {
 //			if (cfmt.alignbars)
-//				parse.line.error("V: does not work with %%alignbars")
+//				syntax(1, "V: does not work with %%alignbars")
 			if (staves_found >= 0)
 				curvoice.ignore = true
 		}
@@ -2311,7 +2332,7 @@ function goto_tune(is_K) {
 		p_voice = voice_tb[v];
 		p_voice.ulen = glovar.ulen
 		if (p_voice.key.k_bagpipe
-		 && p_voice.pos.stm == 0) {
+		 && !p_voice.pos.stm) {
 			p_voice.pos = clone(p_voice.pos);
 			p_voice.pos.stm = SL_BELOW
 		}

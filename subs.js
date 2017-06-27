@@ -421,7 +421,7 @@ function put_words(words) {
 
 /* -- output history -- */
 function put_history() {
-	var	i, j, c, str, font, h, w,
+	var	i, j, c, str, font, h, w, head,
 		names = cfmt.infoname.split("\n"),
 		n = names.length
 
@@ -439,7 +439,7 @@ function put_history() {
 			h = gene.curfont.size * cfmt.lineskipfac
 		}
 		head = names[i].slice(2)
-		if (head[0] = '"')
+		if (head[0] == '"')
 			head = head.slice(1, -1);
 		vskip(h);
 		xy_str(0, 0, head);

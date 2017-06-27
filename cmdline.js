@@ -42,24 +42,25 @@ function dump_obj(obj) {
 	print(" -->")
 }
 
-function do_file(fname) {
-	var i, j, file, file2;
-	j = fname.lastIndexOf("/")
-	if (j < 0)
-		j = 0;
-	i = fname.indexOf(".", j)
-	if (i < 0)
-		fname += ".abc";
-	file = readFile(fname)
+function do_file(fn) {
+	var	file = user.read_file(fn)
+
+	if (!file) {
+		j = fn.lastIndexOf("/")
+		if (j < 0)
+			j = 0;
+		i = fn.indexOf(".", j)
+		if (i < 0) {
+			fn += ".abc";
+			file = user.read_file(fn)
+		}
+	}
 	if (!file)
-		abort(new Error("Cannot read file '" + fname + "'"));
-	file2 = set_eoln(file)
-	if (file2)
-		file = file2
+		abort(new Error("Cannot read file '" + fn + "'"))
 //	if (typeof(utf_convert) == "function")
-//		file = utf_convert(file);
+//		file = utf_convert(file)
 	try {
-		abc.tosvg(fname, file)
+		abc.tosvg(fn, file)
 	}
 	catch (e) {
 		abort(e)
@@ -67,9 +68,9 @@ function do_file(fname) {
 }
 
 function abc_cmd(cmd, args) {
-	var arg, param, fname;
+	var	arg, parm, fn;
 
-	abc = new Abc(user);
+	abc = new Abc(user);		// (global for 'toxxx.js')
 	abc_init()
 	while (1) {
 		arg = args.shift()
@@ -77,20 +78,20 @@ function abc_cmd(cmd, args) {
 			break
 		if (arg[0] == "-") {
 			if (arg[1] == "-") {
-				param = args.shift();
+				parm = args.shift();
 				abc.tosvg(cmd, arg.replace('--', 'I:') +
-						" " + param + "\n")
+						" " + parm + "\n")
 			}
 		} else {
-			if (fname) {
-				do_file(fname);
+			if (fn) {
+				do_file(fn);
 				abc.tosvg('cmd', '%%select\n')
 			}
-			fname = arg
+			fn = arg
 		}
 	}
-	if (fname)
-		do_file(fname);
+	if (fn)
+		do_file(fn);
 
 	abc_end()
 }

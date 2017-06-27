@@ -18,7 +18,7 @@ function get_lyrics(text, cont) {
 	if (cont) {					// +:
 		s = curvoice.lyric_cont
 		if (!s) {
-			parse.line.error("+: lyric without music")
+			syntax(1, "+: lyric without music")
 			return
 		}
 	} else {
@@ -34,7 +34,7 @@ function get_lyrics(text, cont) {
 		if (!s)
 			s = curvoice.sym
 		if (!s) {
-			parse.line.error("w: without music")
+			syntax(1, "w: without music")
 			return
 		}
 	}
@@ -53,8 +53,7 @@ function get_lyrics(text, cont) {
 			while (s && s.type != BAR)
 				s = s.next
 			if (!s) {
-				parse.line.error(
-					"Not enough bar lines for lyric line")
+				syntax(1, "Not enough measure bars for lyric line")
 				return
 			}
 			s = s.next;
@@ -111,7 +110,7 @@ function get_lyrics(text, cont) {
 		while (s && (s.type != NOTE || s.grace))
 			s = s.next
 		if (!s) {
-			parse.line.error("Too many words in lyric line")
+			syntax(1, "Too many words in lyric line")
 			return
 		}
 		if (word

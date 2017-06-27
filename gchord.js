@@ -10,7 +10,7 @@
 // 'type' may be a single '"' or a string '"xxx"' created by U:
 function parse_gchord(type) {
 	var	c, text, gch, x_abs, y_abs, type,
-		istart, iend,
+		i, istart, iend,
 		ann_font = get_font("annotation"),
 		h_ann = ann_font.size,
 		line = parse.line
@@ -35,7 +35,7 @@ function parse_gchord(type) {
 		while (1) {
 			c = line.next_char()
 			if (!c) {
-				line.error("No end of guitar chord")
+				syntax(1, "No end of guitar chord")
 				return
 			}
 			if (c == '"')
@@ -72,7 +72,7 @@ function parse_gchord(type) {
 			i++;
 			x_abs = get_float()
 			if (c != ',') {
-				line.error("',' lacking in annotation '@x,y'");
+				syntax(1, "',' lacking in annotation '@x,y'");
 				y_abs = 0
 			} else {
 				y_abs = get_float()
@@ -414,7 +414,7 @@ function gch_build(s) {
 // (the staves are not yet defined)
 // (unscaled delayed output)
 function draw_gchord(s, gchy_min, gchy_max) {
-	var	gch, gch2, text, ix, x, y, y2, i, j, hbox
+	var	gch, gch2, text, ix, x, y, y2, i, j, hbox, h
 
 	/* adjust the vertical offset according to the guitar chords */
 //fixme: w may be too small
