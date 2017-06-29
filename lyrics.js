@@ -66,7 +66,7 @@ function get_lyrics(text, cont) {
 			word = "_\n"
 			break
 		case '*':
-			word = null
+			word = ""
 			break
 		default:
 			if (p[i] == '\\'
@@ -146,7 +146,7 @@ function ly_width(s, wlw) {
 		a_ly = s.a_ly;
 
 	align = 0
-	for (i = 0; i < a_ly.length; i++) {
+	for (i in a_ly) {
 		ly = a_ly[i]
 		if (!ly)
 			continue
@@ -221,7 +221,7 @@ function ly_width(s, wlw) {
 			s.wr = xx
 	}
 	if (align > 0) {
-		for (i = 0; i < a_ly.length; i++) {
+		for (i in a_ly) {
 			ly = a_ly[i]
 			if (ly && ly.t[0] >= '0' && ly.t[0] <= '9')
 				ly.shift = align
@@ -395,7 +395,7 @@ function draw_all_lyrics() {
 
 	/* compute the number of lyrics per voice - staff
 	 * and their y offset on the staff */
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		if (!p_voice.sym)
 			continue
@@ -428,7 +428,7 @@ function draw_all_lyrics() {
 					bot = y
 				if (nly < a_ly.length)
 					nly = a_ly.length
-				for (i = 0; i < a_ly.length; i++) {
+				for (i in a_ly) {
 					ly = a_ly[i]
 					if (!ly)
 						continue
@@ -469,7 +469,7 @@ function draw_all_lyrics() {
 
 	/* draw the lyrics under the staves */
 	i = 0
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		if (!p_voice.sym)
 			continue
@@ -500,7 +500,7 @@ function draw_all_lyrics() {
 	}
 
 	/* set the max y offsets of all symbols */
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		if (!p_voice.sym)
 			continue

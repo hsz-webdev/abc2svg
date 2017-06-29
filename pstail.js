@@ -1,5 +1,5 @@
 // abc2svg - pstail.js
-// Copyright (C) 2014-2015 Jean-Francois Moine
+// Copyright (C) 2014-2017 Jean-Francois Moine
 // This program is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License version 2 as
 // published by the Free Software Foundation.
@@ -86,7 +86,7 @@ function psxygl(x, y, gl){
 //		svgbuf = ''
 		return false
 	}
-	Os.pop();
+	Os.pop()
 	return pscall(gl, x, y, 'dlw ')
 }
 
@@ -138,9 +138,9 @@ this.get_y = function(st, y) {
 
 // initialize
 	abc2svg_init();
-	svgobj = new Svg;
-	wpsobj = new Wps;
-	abcobj = this;
+	var	svgobj = new Svg,
+		wpsobj = new Wps,
+		abcobj = this;
 	wpsobj.parse(psvg_op,
 "/!{bind def}bind def\n\
 /T/translate load def\n\

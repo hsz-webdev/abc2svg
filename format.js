@@ -324,7 +324,7 @@ function set_v_param(k, v, sub) {
 
 // set a format parameter
 function set_format(cmd, param, lock) {
-	var f, f2, v, box
+	var f, f2, v, box, i
 
 //fixme: should check the type and limits of the parameter values
 	if (lock) {

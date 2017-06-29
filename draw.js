@@ -217,7 +217,7 @@ function calculate_beam(bm, s1) {
 				a *= BEAM_FLATFAC
 		}
 		if (a >= 0)
-			a = BEAM_SLOPE * a / (BEAM_SLOPE + a)	/* max steepness for beam */
+			a = BEAM_SLOPE * a / (BEAM_SLOPE + a) // max steepness for beam
 		else
 			a = BEAM_SLOPE * a / (BEAM_SLOPE - a);
 //	} else {
@@ -402,8 +402,7 @@ function calculate_beam(bm, s1) {
 	}
 
 	if (a == 0)		/* shift flat beams onto staff lines */
-		b += b_pos(s1.grace, s1.stem, nflags,
-				b - staff_tb[st].y)
+		b += b_pos(s1.grace, s1.stem, nflags, b - staff_tb[st].y)
 
 	/* adjust final stems and rests under beam */
 	for (s = s1; ; s = s.next) {
@@ -444,7 +443,6 @@ function calculate_beam(bm, s1) {
 					break
 			}
 			if (s.head != FULL)
-//				y = Math.floor((y + 3 + 12) / 6) * 6 - 12;
 				y = (((y + 3 + 12) / 6) | 0) * 6 - 12;
 			s.y = y
 			break
@@ -2248,7 +2246,9 @@ function draw_tuplet(s1,
 	if (!dir)
 		dir = s1.stem > 0 ? SL_ABOVE : SL_BELOW
 
-	if (s1.tf[1] == 1) {			/* 'what' == slur */
+	if (s1 == s2) {				/* tuplet with 1 note (!) */
+		nb_only = true;
+	} else if (s1.tf[1] == 1) {			/* 'what' == slur */
 		nb_only = true;
 		draw_slur(s1, s2, -1, -1, dir)
 	} else {

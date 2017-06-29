@@ -21,7 +21,7 @@ function voice_filter() {
 		sel = new RegExp(opt)
 		if (sel.test(curvoice.id)
 		 || sel.test(curvoice.nm)) {
-			for (i = 0; i < parse.voice_opts[opt].length; i++)
+			for (i in parse.voice_opts[opt])
 				do_pscom(parse.voice_opts[opt][i])
 		}
 	}
@@ -174,7 +174,7 @@ function sort_all() {
 
 		/* search the min time and symbol weight */
 		wmin = time = 1000000				/* big int */
-		for (ir = 0; ir < vn.length; ir++) {
+		for (ir in vn) {
 			v = vn[ir]
 			if (v == undefined)
 				break
@@ -202,7 +202,7 @@ function sort_all() {
 		/* if some multi-rest and many voices, expand */
 		if (time == mrest_time) {
 			nb = 0
-			for (ir = 0; ir < vn.length; ir++) {
+			for (ir in vn) {
 				v = vn[ir]
 				if (v == undefined)
 					break
@@ -222,7 +222,7 @@ function sort_all() {
 				}
 			}
 			if (mrest_time < 0) {
-				for (ir = 0; ir < vn.length; ir++) {
+				for (ir in vn) {
 					v = vn[ir]
 					if (v == undefined)
 						break
@@ -234,7 +234,7 @@ function sort_all() {
 		}
 
 		/* link the vertical sequence */
-		for (ir = 0; ir < vn.length; ir++) {
+		for (ir in vn) {
 			v = vn[ir]
 			if (v == undefined)
 				break
@@ -346,7 +346,7 @@ function voice_adj() {
 		p_voice.sym = s
 	}
 
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		if (p_voice.ignore)
 			p_voice.ignore = false
@@ -419,7 +419,7 @@ function voice_adj() {
 function dupl_voice() {
 	var p_voice, p_voice2, s, s2, g, g2, v, i
 
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v];
 		p_voice2 = p_voice.clone
 		if (!p_voice2)
@@ -494,7 +494,7 @@ function new_syst(init) {
 	}
 
 	// update the previous system
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		st = par_sy.voices[v].st
 		var	sy_staff = par_sy.staves[st],
 			p_voice = voice_tb[v]
@@ -506,7 +506,7 @@ function new_syst(init) {
 		sy_new.voices[v].range = -1;
 		delete sy_new.voices[v].second
 	}
-	for (st = 0; st < par_sy.staves.length; st++) {
+	for (st in par_sy.staves) {
 		sy_new.staves[st] = clone(par_sy.staves[st]);
 		sy_new.staves[st].flags = 0
 	}
@@ -598,7 +598,7 @@ function do_clip() {
 			}
 		}
 		cur_sy = sy
-		for (v = 0; v < voice_tb.length; v++) {
+		for (v in voice_tb) {
 			p_voice = voice_tb[v]
 			for (s2 = s; s2; s2 = s2.ts_next) {
 				if (s2.v == v) {
@@ -625,7 +625,7 @@ function do_clip() {
 	} while (!s.seqst)
 
 	/* cut the voices */
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		for (s2 = s.ts_prev; s2; s2 = s2.ts_prev) {
 			if (s2.v == v) {
@@ -650,7 +650,7 @@ function set_bar_num() {
 	function do_break() {
 		var s, i, m, n, d, t
 
-		for (i = 0; i < glovar.break.length; i++) {
+		for (i in glovar.break) {
 			m = glovar.break[i].m
 			n = glovar.break[i].n
 			d = glovar.break[i].d
@@ -810,7 +810,7 @@ function get_break(param) {
 	var a = param.split(' '), b, c, d, i, j, k, n
 
 	glovar.break = []
-	for (k = 0; k < a.length; k++) {
+	for (k in a) {
 		b = a[k];
 		i = b.indexOf(':')
 		if (i < 0) {
@@ -1443,7 +1443,7 @@ function do_begin_end(type,
 	switch (type) {
 	default:
 //	case "ps":
-		if (wpsobj) {
+		if (typeof wpsobj == 'object') {
 			wpsobj.parse(text);
 			output.push(svgbuf)
 		}
@@ -1524,7 +1524,7 @@ function generate() {
 	output_music()
 
 	/* reset the parser */
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v];
 		p_voice.time = 0;
 		p_voice.sym = p_voice.last_sym = null;
@@ -1675,7 +1675,7 @@ function get_staves(cmd, parm) {
 	var	maxtime = 0,
 		no_sym = true
 
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		if (p_voice.time > maxtime)
 			maxtime = p_voice.time
@@ -1684,7 +1684,7 @@ function get_staves(cmd, parm) {
 	}
 	if (no_sym				/* if first %%staves */
 	 || (maxtime == 0 && staves_found < 0)) {
-		for (v = 0; v < par_sy.voices.length; v++)
+		for (v in par_sy.voices)
 			par_sy.voices[v].range = -1
 //	} else if (staves_found != maxtime) {	// if no 2 %%staves
 	} else {
@@ -1695,7 +1695,7 @@ function get_staves(cmd, parm) {
 		 * link the 'staves' symbol in a voice which is seen from
 		 * the previous system - see sort_all
 		 */
-		for (v = 0; v < par_sy.voices.length; v++) {
+		for (v in par_sy.voices) {
 			if (par_sy.voices[v].range >= 0) {
 				curvoice = voice_tb[v]
 				break
@@ -1728,7 +1728,7 @@ function get_staves(cmd, parm) {
 	staves_found = maxtime
 
 	/* initialize the (old) voices */
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		delete p_voice.second
 		delete p_voice.ignore
@@ -1736,7 +1736,7 @@ function get_staves(cmd, parm) {
 //		p_voice.time = maxtime
 	}
 	range = 0
-	for (i = 0; i < a_vf.length; i++) {
+	for (i in a_vf) {
 		vid = a_vf[i][0];
 		p_voice = new_voice(vid);
 		p_voice.time = maxtime;
@@ -1853,7 +1853,7 @@ function get_staves(cmd, parm) {
 			par_sy.staves[st].flags ^= STOP_BAR
 	}
 
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		if (par_sy.voices[v].range < 0) {
 			p_voice.ignore = true
@@ -1885,7 +1885,7 @@ function get_vover(type) {
 	function clone_voice(id) {
 		var v, p_voice
 
-		for (v = 0; v < voice_tb.length; v++) {
+		for (v in voice_tb) {
 			p_voice = voice_tb[v]
 			if (p_voice.id == id)
 				return p_voice		// found
@@ -1966,7 +1966,7 @@ function get_vover(type) {
 		}
 		var f_clone = curvoice.clone != undefined ? 1 : 0;
 		range = par_sy.voices[curvoice.v].range
-		for (v = 0; v < par_sy.voices.length; v++) {
+		for (v in par_sy.voices) {
 			if (par_sy.voices[v].range > range)
 				par_sy.voices[v].range += f_clone + 1
 		}
@@ -2097,7 +2097,7 @@ function get_key(kp) {
 			s_key.k_sf = 0;
 			s_key.k_none = true
 		}
-		for (v = 0; v < voice_tb.length; v++) {
+		for (v in voice_tb) {
 			p_voice = voice_tb[v];
 			p_voice.key = s_key;
 			p_voice.okey = clone(s_key);
@@ -2328,7 +2328,7 @@ function goto_tune(is_K) {
 	}
 
 	// update some voice parameters
-	for (v = 0; v < voice_tb.length; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v];
 		p_voice.ulen = glovar.ulen
 		if (p_voice.key.k_bagpipe

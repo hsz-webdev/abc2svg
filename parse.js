@@ -197,7 +197,7 @@ function set_linebreak(param) {
 		}
 	}
 	param = param.split(/\s+/)
-	for (i = 0; i < param.length; i++) {
+	for (i in param) {
 		item = param[i]
 		switch (item) {
 		case '!':
@@ -752,7 +752,7 @@ function new_meter(text) {
 				else
 					glovar.ulen = BASE_LEN / 16
 			}
-			for (v = 0; v < voice_tb.length; v++) {
+			for (v in voice_tb) {
 				voice_tb[v].meter = s;
 				voice_tb[v].wmeasure = wmeasure
 			}
@@ -1756,7 +1756,7 @@ function note_transp(s) {
 						a = -1	// flat
 				}
 			} else {
-				for (j = 0; j < curvoice.okey.a_acc.length; j++) {
+				for (j in curvoice.okey.a_acc) {
 					acc = curvoice.okey.a_acc[j]
 					if ((n + 16 * 7 - acc.pit) % 7 == 0) {
 						a = acc.acc
@@ -2164,7 +2164,7 @@ function new_note(grace, tp_fact) {
 
 	if (cfmt.shiftunison)
 		s.shiftunison = cfmt.shiftunison
-	if (!curvoice.lyric_restart)
+	if (!curvoice.lyric_restart && !s.grace)
 		curvoice.lyric_restart = s
 
 //	if (curvoice.clef.clef_type == 'p')

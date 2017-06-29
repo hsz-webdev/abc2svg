@@ -1,3 +1,26 @@
+---- Version 1.12.14 - 2017-06-29 ----
+
+. fixes
+	Crash on %%notespacingfactor since 1.12.12
+		(reported by Gerhard Schacherl)
+	Loss of lyrics when music line starting with a grace note
+		(reported by Gerhard Schacherl)
+	Crash on decorations with '@' in text since 1.12.12
+		(reported by Gerhard Schacherl)
+	Crash on some cases of tuplet with 1 note
+		(reported by Willem Vree)
+	Crash when %%beginps and no PS support since 1.12.13
+	Lack of printing long decorations when on more than 2 music lines
+		(reported by Willem Vree)
+
+---- Version 1.12.13 - 2017-06-27 ----
+
+. fixes
+	Crash when using of the PS core (abcps2svg-1.js)
+		(reported by Gerhard Schacherl)
+	Missing upload of {,ps}edit-1.xhtml
+		(reported by Gerhard Schacherl)
+
 ---- Version 1.12.12 - 2017-06-27 ----
 
 . fixes

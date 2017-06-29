@@ -1016,9 +1016,9 @@ function svg_flush() {
 		head += '<g class="music" stroke-width=".7">\n'
 	else
 		head += '<g class="music" stroke-width=".7" transform="scale(' +
-					cfmt.scale.toFixed(2) + ')">\n';
+				cfmt.scale.toFixed(2) + ')">\n';
 
-	if (svgobj) {			// if PostScript support
+	if (typeof svgobj == 'object') {	// if PostScript support
 		svgobj.setg(0);
 		output.push(svgbuf);
 		svgbuf = ''

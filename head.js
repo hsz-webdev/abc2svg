@@ -7,5 +7,4 @@
 
 // start of the Abc object
 function Abc(user) {
-	var	wpsobj, svgobj;
 	this.user = user

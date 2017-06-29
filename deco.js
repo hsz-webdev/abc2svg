@@ -243,7 +243,7 @@ function d_cresc(de) {
 	var	s, dd, dd2, up, x, dx, x2, i,
 		s2 = de.s,
 		de2 = de.start,		/* start of the deco */
-		de2_prev;
+		de2_prev, de_next;
 
 	s = de2.s;
 	x = s.x + 3;
@@ -258,12 +258,12 @@ function d_cresc(de) {
 	if (up)
 		de.up = true
 
-	/* shift the starting point if any dynamic mark on the left */
+	// shift the starting point if any dynamic mark on the left
 	if (de2_prev && de2_prev.s == s
 	 && ((de.up && !de2_prev.up)
 	  || (!de.up && de2_prev.up))) {
 		dd2 = de2_prev.dd
-		if (f_staff[dd2.func]) {
+		if (f_staff[dd2.func]) {	// if dynamic mark
 			x2 = de2_prev.x + de2_prev.val + 4
 			if (x2 > x)
 				x = x2
@@ -277,12 +277,16 @@ function d_cresc(de) {
 			dx = 20
 		}
 	} else {
-		x2 = s2.x
-		if (de.next && de.next.s == s
-		 && ((de.up && !de.next.up)
-		  || (!de.up && de.next.up))) {
-			dd2 = de.next.dd
-			if (f_staff[dd2.func])	/* if dynamic mark */
+
+		// shift the ending point if any dynamic mark on the right
+		x2 = s2.x;
+		de_next = a_de[de.ix + 1]
+		if (de_next
+		 && de_next.s == s
+		 && ((de.up && !de_next.up)
+		  || (!de.up && de_next.up))) {
+			dd2 = de_next.dd
+			if (f_staff[dd2.func])	// if dynamic mark
 				x2 -= 5
 		}
 		dx = x2 - x - 4
@@ -674,10 +678,9 @@ function deco_build(nm, text) {
 
 /* -- convert the decorations -- */
 function deco_cnv(a_dcn, s, prev) {
-	var	i, j, dd, dcn, note,
-		n = a_dcn.length
+	var	i, j, dd, dcn, note
 
-	for (i = 0; i < n; i++) {
+	for (i in a_dcn) {
 		dcn = a_dcn[i];
 		dd = dd_tb[dcn]
 		if (!dd) {
@@ -852,10 +855,9 @@ function deco_def(nm) {
 /* -- update the x position of a decoration -- */
 // used to center the rests
 function deco_update(s, dx) {
-	var	i, de,
-		n = a_de.length
+	var	i, de
 
-	for (i = 0; i < n; i++) {
+	for (i in a_de) {
 		de = a_de[i]
 		if (de.s == s)
 			de.x += dx
@@ -866,10 +868,9 @@ function deco_update(s, dx) {
 function deco_width(s) {
 	var	dd, i,
 		wl = 0,
-		a_dd = s.a_dd,
-		n = a_dd.length
+		a_dd = s.a_dd
 
-	for (i = i = 0; i < n; i++) {
+	for (i in a_dd) {
 		dd =  a_dd[i]
 		switch (dd.func) {
 		case 1:			/* slide */
@@ -892,7 +893,8 @@ function deco_width(s) {
 function draw_all_deco() {
 	if (a_de.length == 0)
 		return
-	var	de, de2, dd, s, note, f, st, x, y, y2, ym, uf, i, str,
+	var	de, de2, dd, s, note, f, st, x, y, y2, ym, uf, i, str, a,
+		new_de = [],
 		ymid = []
 
 	if (!cfmt.dynalign) {
@@ -998,11 +1000,14 @@ function draw_all_deco() {
 			x = y = 0
 		}
 		if (de.has_val) {
-			if (dd.func != 2 || stv_g.st < 0)
+			if (dd.func != 2	// if not !arpeggio!
+			 || stv_g.st < 0)	// or not staff scale
 // || voice_tb[s.v].scale != 1)
 				out_deco_val(x, y, f, de.val / stv_g.scale, de.defl)
 			else
 				out_deco_val(x, y, f, de.val, de.defl)
+			if (de.defl.noen)
+				new_de.push(de.start)	// to be continued next line
 		} else if (dd.str != undefined
 			&& dd.str != 'sfz') {
 			str = dd.str
@@ -1024,6 +1029,9 @@ function draw_all_deco() {
 			g_close();
 		anno_stop(s, 'deco')
 	}
+
+	// keep the long decorations which continue on the next line
+	a_de = new_de
 }
 
 /* -- create the decorations and define the ones near the notes -- */
@@ -1033,13 +1041,26 @@ function draw_all_deco() {
 function draw_deco_near() {
 	var s, g, dd, first, m
 
+	// update starting old decorations
+	function ldeco_update(s) {
+		var	i, de,
+//			x = s.ts_prev.x + s.ts_prev.wr
+			x = s.x - s.wl
+
+		for (i in a_de) {
+			de = a_de[i];
+			de.ix = i;
+			de.s.x = de.x = x;
+			de.defl.nost = true
+		}
+	}
+
 	/* -- create the deco elements, and treat the near ones -- */
 	function create_deco(s) {
-		var	dd, k, l, pos, de,
-			n = s.a_dd.length
+		var	dd, k, l, pos, de
 
 /*fixme:pb with decorations above the staff*/
-		for (k = 0; k < n; k++) {
+		for (k in s.a_dd) {
 			dd = s.a_dd[k]
 
 			/* check if hidden */
@@ -1093,7 +1114,7 @@ function draw_deco_near() {
 		var	f, str, de, uf, k, dcn, dd,
 			note = s.notes[m]
 
-		for (k = 0; k < note.a_dcn.length; k++) {
+		for (k in note.a_dcn) {
 			dcn = note.a_dcn[k];
 			dd = dd_tb[dcn]
 			if (!dd) {
@@ -1148,7 +1169,7 @@ function draw_deco_near() {
 		if (s.a_dd)
 			create_deco(s)
 		if (s.notes) {
-			for (m = 0; m < s.notes.length; m++) {
+			for (m in s.notes) {
 				if (s.notes[m].a_dcn)
 					create_dh(s, m)
 			}
@@ -1204,7 +1225,7 @@ function draw_deco_near() {
 				a_de.push(de2)
 			}
 			de2.start = de;
-			de2.defl.nost = false
+			de2.defl.nost = de.defl.nost
 		}
 
 		// add starting decorations
@@ -1231,8 +1252,20 @@ function draw_deco_near() {
 		}
 	} // ll_deco
 
-//	a_de = []				// must be empty
-	for (s = tsfirst; s; s = s.ts_next) {
+	// update the long decorations started in the previous line
+	for (s = tsfirst ; s; s = s.ts_next) {
+		switch (s.type) {
+		case CLEF:
+		case KEY:
+		case METER:
+			continue
+		}
+		break
+	}
+	if (a_de.length != 0)
+		ldeco_update(s)
+
+	for ( ; s; s = s.ts_next) {
 		switch (s.type) {
 		case BAR:
 		case MREST:
@@ -1258,10 +1291,9 @@ function draw_deco_near() {
 /* (the staves are not yet defined) */
 /* (delayed output) */
 function draw_deco_note() {
-	var	i, de, dd, f,
-		n_de = a_de.length
+	var	i, de, dd, f
 
-	for (i = 0; i < n_de; i++) {
+	for (i in a_de) {
 		de = a_de[i];
 		dd = de.dd;
 		f = dd.func
@@ -1278,7 +1310,7 @@ function draw_deco_note() {
 /* (the staves are not yet defined) */
 /* (unscaled delayed output) */
 function draw_deco_staff() {
-	var	s, first_gchord, p_voice, x, y, w, i, n, v, de, dd,
+	var	s, first_gchord, p_voice, x, y, w, i, v, de, dd,
 		gch, gch2, ix, top, bot,
 		minmax = new Array(nstaff)
 
@@ -1407,9 +1439,8 @@ function draw_deco_staff() {
 			continue
 		if (!first_gchord)
 			first_gchord = s;
-		gch2 = null;
-		n = s.a_gch.length
-		for (ix = 0; ix < n; ix++) {
+		gch2 = null
+		for (ix in s.a_gch) {
 			gch = s.a_gch[ix]
 			if (gch.type != 'g')
 				continue
@@ -1465,8 +1496,7 @@ function draw_deco_staff() {
 	}
 
 	/* draw the repeat brackets */
-	n = voice_tb.length
-	for (v = 0; v < n; v++) {
+	for (v in voice_tb) {
 		p_voice = voice_tb[v]
 		if (p_voice.second || !p_voice.sym)
 			continue
@@ -1479,8 +1509,7 @@ function draw_deco_staff() {
 			ymin: 0,
 			ymax: 0
 		}
-	n = a_de.length
-	for (i = 0; i < n; i++) {
+	for (i in a_de) {
 		de = a_de[i];
 		dd = de.dd
 		if (!dd)		// if error
@@ -1503,7 +1532,7 @@ function draw_deco_staff() {
 	}
 
 	/* and, if wanted, set them at a same vertical offset */
-	for (i = 0; i < n; i++) {
+	for (i in a_de) {
 		de = a_de[i];
 		dd = de.dd
 		if (!dd)		// if error
@@ -1755,7 +1784,7 @@ function write_tempo(s, x, y) {
 		x += strw(s.tempo_str1) + 3
 	}
 	if (s.tempo_notes) {
-		for (j = 0; j < s.tempo_notes.length; j++)
+		for (j in s.tempo_notes)
 			x += draw_notempo(s, x, y, s.tempo_notes[j], sc);
 		xy_str(x, y, "=");
 		x += strw("= ")
